@@ -20,13 +20,16 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 import pdb
 
+from graph_scripts.utils import MissingDataError
+from graph_scripts.figures import ImageTimeVsGpu
+
 # custom execption for a failing regex
 class NoGpuError(Exception):
     pass
 
 # custom execption for missing data
-class MissingDataError(Exception):
-    pass
+#class MissingDataError(Exception):
+#    pass
 
 # utility function:
 # https://stackoverflow.com/questions/3229419/how-to-pretty-print-nested-dictionaries
@@ -119,40 +122,6 @@ def extra_network_costs(img_num, run_duration_minutes):
     total_fees = total_storage_cost + download_fees + publication_fees
     return total_fees
 
-def get_image_time_by_gpu_data(raw_data, chosen_delay, chosen_img_num):
-    # only choose relevant runs
-    refined_data = []
-    for entry in raw_data:
-        if entry["start_delay"] == chosen_delay:
-            refined_data.append(entry)
-    refined_data2 = []
-    for entry in refined_data:
-        if entry["num_images"] == chosen_img_num:
-            refined_data2.append(entry)
-    if len(refined_data2) == 0:
-        raise MissingDataError
-    # grab variables of interest from relevant runs
-    variables_of_interest = ['average_image_time', 'average_image_upload_time', 'average_image_prediction_time', 'average_image_postprocess_time', 'average_image_download_time']
-    gpu_nums = [1,4,8]
-    output_data = {}
-    for variable_of_interest in variables_of_interest:
-        data_lists = []
-        for gpu_num in gpu_nums:
-            times = [entry[variable_of_interest] for entry in refined_data2 if entry['num_gpus']==gpu_num]
-            data_lists.append(times)
-            output_data[variable_of_interest] = format_data_for_error_plotting(data_lists)
-    # create DataFrame from variables of interest
-    # 2 is a magic number that derives from the format of the data returned from format_data_for_error_plotting
-    col_num = len(variables_of_interest)*2
-    row_num = len(gpu_nums)
-    data_array = np.zeros( (row_num, col_num) )
-    for row in range(row_num):
-        for col in range(col_num):
-            var_num = col % len(variables_of_interest)
-            var_index = int( (col - var_num) / len(variables_of_interest) )
-            data_array[row,col] = output_data[ variables_of_interest[var_num] ][ var_index ][ row ]
-    data_df = pd.DataFrame(data_array, columns=["total elapsed time","upload time","prediction time","postprocessing time","download time","total_err","upload_err","prediction_err","postprocessing_err","download_err"], index=["1GPU","4GPU","8GPU"])
-    return data_df
 
 def get_time_by_gpu_data(raw_data, chosen_delay, img_nums):
     # only choose relevant runs
@@ -255,35 +224,6 @@ def format_data_for_error_plotting(data_lists):
     return (means, one_sided_95_percent_intervals)
 
 
-def plot_image_times(df, labels=None, title="multiple stacked bar plot", y_label=None, H="/", pdf_name="image_breakdown.pdf", **kwargs):
-    """Given a list of dataframes, with identical columns and index, create a clustered stacked bar plot. 
-       labels is a list of the names of the dataframe, used for the legend title is a string for the 
-       title of the plot H is the hatch used for identification of the different dataframe"""
-
-    n_col = len(df.columns) 
-    fig, axes = plt.subplots(1, figsize=(20,10))
-    axe = axes
-    axe = df[["upload time", "prediction time", "postprocessing time", "download time"]].plot(kind="bar",
-                    yerr=df[["upload_err", "prediction_err", "postprocessing_err", "download_err"]].values.T,
-                    linewidth=0,
-                    stacked=True,
-                    ax=axe,
-                    legend=False,
-                    grid=False,
-                    **kwargs)  # make bar plots
-
-    axe.set_title(title)
-    axe.set_ylabel(y_label)
-    axe.set_xlabel('Number of GPUs')
-    axe.set_xticks([0,1,2])
-    axe.set_xlim(-0.30,2.30)
-    axe.set_xticklabels(["1 GPU", "4 GPU", "8 GPU"])
-    h,l = axe.get_legend_handles_labels() # get the handles we want to modify
-    l1 = axe.legend(h[n_col-1::-1], l[n_col-1::-1], loc=[.425, 0.75])
-    axe.add_artist(l1)
-    plt.savefig(pdf_name, transparent=True)
-    return axe
-
 def plot_times(df, labels=None, title="multiple unstacked bar plot", y_label=None, H="/", pdf_name="output-bargraph.pdf", **kwargs):
     """Given a list of dataframes, with identical columns and index, create a clustered stacked bar plot. 
        labels is a list of the names of the dataframe, used for the legend title is a string for the 
@@ -353,6 +293,8 @@ if __name__=='__main__':
     cm = define_colorblind_color_map()
 
     extracted_data = extract_data()
+    raw_data = extracted_data
+
 
     delays = [5.0]
     img_nums = [10000, 100000, 1000000]
@@ -391,12 +333,10 @@ if __name__=='__main__':
             # create single-image-number graphs
             if create_image_time_vs_gpu:
                 # num_gpu vs. image time plot
-                image_time_by_gpu_title = title_label + " Image Semantic Segmentation Runtime (Per Image)"
-                image_time_by_gpu_pdf_name = pdf_label + "_image_runtimes.pdf"
+                image_time_vs_gpu_figure = ImageTimeVsGpu(raw_data, chosen_delay, chosen_img_num, title_label, pdf_label)
                 try:
-                    df = get_image_time_by_gpu_data(extracted_data, chosen_delay, chosen_img_num)
-                    plot_image_times(df, title=image_time_by_gpu_title, y_label="Time (Minutes)", pdf_name=image_time_by_gpu_pdf_name, cmap=cm)
-                    print(f"Saved {image_time_by_gpu_pdf_name}")
+                    image_time_vs_gpu_figure.plot()
+                    print(f"Saved {image_time_vs_gpu_figure.plot_pdf_name}")
                 except MissingDataError:
                     print(f"No data for gpu vs image time for delay {chosen_delay} and img_num {chosen_img_num}.")
                     pass
@@ -411,4 +351,24 @@ if __name__=='__main__':
                 except MissingDataError:
                     print(f"No data for gpu vs cost for delay {chosen_delay} and img_num {chosen_img_num}.")
                     pass
+    pdb.set_trace()
+
+
+
+
+
+
+    if False:
+        # create single-image-number graphs
+        if create_image_time_vs_gpu:
+            pass
+        if create_cost_vs_gpu:
+            # num_gpu vs. cost plot
+            try:
+                cost_vs_gpu_figure = CostVsGpu(raw_data, chosen_delay, chosen_img_num, title_label, pdf_label)
+                cost_vs_gpu_figure.plot()
+                print(f"Saved {cost_vs_gpu_figure.plot_pdf_name}")
+            except MissingDataError:
+                print(f"No data for gpu vs cost for delay {chosen_delay} and img_num {chosen_img_num}.")
+                pass
     pdb.set_trace()
