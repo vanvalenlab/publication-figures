@@ -79,19 +79,38 @@ def extract_data():
                     data_to_keep['cpu_node_cost'] + \
                     data_to_keep['gpu_node_cost'] + \
                     data_to_keep['extra_network_costs']
-            # computing aggregate file-level time components
+            # compile all file-level time components and compute some aggregate properties
             total_time = 0
             total_upload_time = 0
             total_prediction_time = 0
             total_postprocess_time = 0
             total_download_time = 0
+            all_total_times = []
+            all_upload_times = []
+            all_prediction_times = []
+            all_postprocess_times = []
+            all_download_times = []
             for i in range(100):
                 try:
-                    total_time = total_time + sum(json_data['job_data'][i]['total_time'])
-                    total_upload_time = total_upload_time + sum(json_data['job_data'][i]['upload_time'])
-                    total_prediction_time = total_prediction_time + sum(json_data['job_data'][i]['prediction_time'])
-                    total_postprocess_time = total_postprocess_time + sum(json_data['job_data'][i]['postprocess_time'])
-                    total_download_time = total_download_time + sum(json_data['job_data'][i]['download_time'])
+                    # gather raw times
+                    total_times = json_data['job_data'][i]['total_time']
+                    upload_times = json_data['job_data'][i]['upload_time']
+                    prediction_times = json_data['job_data'][i]['prediction_time']
+                    postprocess_times = json_data['job_data'][i]['postprocess_time']
+                    download_times = json_data['job_data'][i]['download_time']
+                    # append to compilation lists
+                    time_lists = [total_times, upload_times, prediction_times, postprocess_times, download_times]
+                    all_time_lists = [all_total_times, all_upload_times, all_prediction_times, all_postprocess_times, all_download_times]
+                    for time_list, all_time_list in zip(time_lists, all_time_lists):
+                        for entry in time_list:
+                            all_time_list.append(entry)
+                    # increment sums
+                    total_time = total_time + sum(total_times)
+                    total_upload_time = total_upload_time + sum(upload_times)
+                    total_prediction_time = total_prediction_time + sum(prediction_times)
+                    total_postprocess_time = total_postprocess_time + sum(postprocess_times)
+                    total_download_time = total_download_time + sum(download_times)
+                    # register a success
                     total_successes = total_successes + 1
                 except TypeError:
                     print("Error.")
@@ -106,6 +125,12 @@ def extract_data():
             data_to_keep['average_image_prediction_time'] = data_to_keep['total_image_prediction_time']/total_successes
             data_to_keep['average_image_postprocess_time'] = data_to_keep['total_image_postprocess_time']/total_successes
             data_to_keep['average_image_download_time'] = data_to_keep['total_image_download_time']/total_successes
+            data_to_keep['all_total_times'] = all_total_times
+            data_to_keep['all_network_times'] = 3*all_upload_times + 3*all_download_times 
+            data_to_keep['all_upload_times'] = all_upload_times
+            data_to_keep['all_prediction_times'] = all_prediction_times
+            data_to_keep['all_postprocess_times'] = all_postprocess_times
+            data_to_keep['all_download_times'] = all_download_times
             aggregated_data.append(data_to_keep)
     print(f'Total successes: {total_successes}')
     print(f'Total failures: {total_failures}')
