@@ -322,6 +322,7 @@ if __name__=='__main__':
 
 
     delays = [5.0]
+    #delays = [0.5, 5.0]
     img_nums = [10000, 100000, 1000000]
     create_image_time_vs_gpu = True
     create_time_vs_gpu = True

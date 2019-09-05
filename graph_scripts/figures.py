@@ -66,7 +66,10 @@ class ImageTimeVsGpu(BaseFigure):
     def __init__(self, raw_data, chosen_delay, chosen_img_num, title_label, pdf_label):
         super().__init__(raw_data, chosen_delay, chosen_img_num)
         self.plot_title = "Semantic Segmentation Workflow Component Runtime"
-        self.plot_pdf_name = pdf_label + "_image_runtimes.pdf"
+        if chosen_delay==5.0:
+            self.plot_pdf_name = pdf_label + "_5sdelay_image_runtimes.pdf"
+        elif chosen_delay==0.5:
+            self.plot_pdf_name = pdf_label + "_0point5sdelay_image_runtimes.pdf"
         self.y_label = "Density (unitless)"
 
     def refine_data(self):
@@ -142,11 +145,19 @@ class ImageTimeVsGpu(BaseFigure):
         self.refine_data()
         self.define_colorblind_color_maps()
         
-        # plot and save figure for ecah number of GPUs
+        # plot and save figures for each number of GPUs
+        bin_number = 10000
         gpus = ["1GPU", "4GPU", "8GPU"]
         for gpu in gpus:
             n_col = len(self.data_df.columns) 
-            if self.chosen_img_num == 100000:
+            if self.chosen_img_num == 1000000:
+                if gpu == "1GPU":
+                    xmaxes = [7,25,3,7]
+                elif gpu == "4GPU":
+                    xmaxes = [2,120,3,2]
+                elif gpu == "8GPU":
+                    xmaxes = [2,120,3,2]
+            elif self.chosen_img_num == 100000:
                 if gpu == "1GPU":
                     xmaxes = [7,25,3,7]
                 elif gpu == "4GPU":
@@ -163,6 +174,84 @@ class ImageTimeVsGpu(BaseFigure):
             # choose type of time measurement for each subplot
             times = ["network", "prediction", "postprocess"]
             number_of_subplots = len(times)
+
+            # Dummy figure and bin width computation
+            # This block serves two purposes:
+            # 1) We need to create a dummy figure so that we can grab the y-axis labels off of it,
+            #    so that we can then modify those labels and use them on the real figure in the next block.
+            # 2) We need to compute the bin widths before rewriting the y-axis labels.
+            bin_widths = []
+            if number_of_subplots == 4:
+                fig, self.axes = plt.subplots(nrows=2, ncols=2, figsize=(20,10))
+            elif number_of_subplots == 3:
+                fig, self.axes = plt.subplots(nrows=1, ncols=3, figsize=(20,10))
+            figure_title = "Semantic Segmentation Workflow Runtimes"
+            fig.suptitle(figure_title, fontsize="x-large")
+            for i in range(number_of_subplots):
+                # compute bin width
+                name = gpu + "_" + times[i]
+                data_min = np.min(self.data_df[[name]])
+                data_max = np.max(self.data_df[[name]])
+                bin_width = (data_max - data_min)/bin_number
+                bin_widths.append(bin_width)
+                print(f"bin_width for {name}: {bin_width}")
+                # plot dummy plot
+                if number_of_subplots==4:
+                    subplot_x = int("{:02b}".format(i)[0])
+                    subplot_y = int("{:02b}".format(i)[1])
+                    print(f"Creating plot {name} in position {subplot_x},{subplot_y}.")
+                elif number_of_subplots==3:
+                    print(f"Creating plot {name} in position {i}.")
+                if number_of_subplots==4:
+                    self.axe = self.data_df[[ name ]].plot.hist(
+                        ax=self.axes[subplot_x,subplot_y],
+                        bins=bin_number,
+                        legend=False,
+                        cmap=self.color_maps[i])
+                elif number_of_subplots==3:
+                    self.axe = self.data_df[[ name ]].plot.hist(
+                        ax=self.axes[i],
+                        bins=bin_number,
+                        legend=False,
+                        cmap=self.color_maps[i])
+                if "postprocess" in times[i]:
+                    base = times[i].capitalize()
+                    suffix = "ing"
+                    second_word = " Runtime"
+                elif "prediction" in times[i]:
+                    base = "Tensorflow Serving Response Time"
+                    suffix = ""
+                    second_word = ""
+                elif "network" in times[i]:
+                    base = "Data Transfer"
+                    suffix = ""
+                    second_word = " Time"
+                plot_subtitle = base + suffix + second_word
+                self.axe.set_title(plot_subtitle)
+                self.axe.set_ylabel(self.y_label)
+                self.axe.set_xlabel('Time (s)')
+                self.axe.set_ylim(ymin=0)
+                self.axe.set_xlim(xmin=0,xmax=xmaxes[i])
+            gpu_plot_name = gpu + "_" + self.plot_pdf_name
+            plt.savefig(gpu_plot_name, transparent=True)
+
+            # get y axis labels from dummy figure
+            labels = []
+            label_maxes = []
+            for i in range(number_of_subplots):
+                subplot_labels = [ float(label.get_text()) for label in self.axes[i].get_yticklabels() ]
+                try:
+                    labels_max = np.max(subplot_labels)
+                    label_maxes.append(labels_max)
+                except TypeError:
+                    pdb.set_trace()
+                try:
+                    modified_subplot_labels = [ str(label/labels_max)[:4] for label in subplot_labels ]
+                except IndexError:
+                    pdb.set_trace()
+                labels.append(modified_subplot_labels)
+
+            # Now, make real figure
             if number_of_subplots == 4:
                 fig, self.axes = plt.subplots(nrows=2, ncols=2, figsize=(20,10))
             elif number_of_subplots == 3:
@@ -175,111 +264,42 @@ class ImageTimeVsGpu(BaseFigure):
                     subplot_x = int("{:02b}".format(i)[0])
                     subplot_y = int("{:02b}".format(i)[1])
                     print(f"Creating plot {name} in position {subplot_x},{subplot_y}.")
-                if number_of_subplots==3:
+                elif number_of_subplots==3:
                     print(f"Creating plot {name} in position {i}.")
-
-                special_prediction_graph = False
-                if special_prediction_graph:
-                    if times[i]=="prediction":
-                        # perform manual KDE
-                        original_data = self.data_df[[name]]
-                        transformed_data = np.log(original_data)
-                        transformed_max_value = np.max(transformed_data)
-                        evaluation_points = int(np.max(original_data))
-                        transformed_locations = np.linspace( 0, transformed_max_value, evaluation_points)
-                        kernel = stats.gaussian_kde( transformed_data.T )
-                        transformed_new_data = kernel(transformed_locations.T)
-                        untransformed_data = np.exp(transformed_new_data)
-                        untransformed_locations = np.exp(transformed_locations)
-                        #self.axes[subplot_x,subplot_y].imshow( np.rot90(new_data), cmap=self.color_maps[i])
-                        #self.axes[subplot_x,subplot_y].plot( locations, new_data, cmap=self.color_maps[i])
-                        self.axes[subplot_x,subplot_y].plot( untransformed_locations, untransformed_data)
-                        self.axes[subplot_x,subplot_y].set_title(self.plot_title)
-                        self.axes[subplot_x,subplot_y].set_ylabel(self.y_label)
-                        self.axes[subplot_x,subplot_y].set_xlabel('Time (s)')
-                        self.axes[subplot_x,subplot_y].tick_params(
-                                axis='y',
-                                which='both',
-                                bottom=False,
-                                top=False)
-                        self.axes[subplot_x,subplot_y].set_ylim(ymin=0)
-                        self.axes[subplot_x,subplot_y].set_xlim(xmin=0,xmax=xmaxes[i])
-                        h,l = self.axes[subplot_x,subplot_y].get_legend_handles_labels() # get the handles we want to modify
-                        l1 = self.axes[subplot_x,subplot_y].legend(h[n_col-1::-1], l[n_col-1::-1], loc=[.425, 0.75])
-                        self.axes[subplot_x,subplot_y].add_artist(l1)
-                    else:
-                        # perform automatic KDE
-                        self.axe = self.data_df[[ name ]].plot.kde(
-                            ax=self.axes[subplot_x,subplot_y],
-                            cmap=self.color_maps[i])
-                        self.axe.set_title(self.plot_title)
-                        self.axe.set_ylabel(self.y_label)
-                        self.axe.set_xlabel('Time (s)')
-                        self.axe.tick_params(
-                                axis='y',
-                                which='both',
-                                bottom=False,
-                                top=False,
-                                labelbottom=False)
-                        self.axe.set_ylim(ymin=0)
-                        self.axe.set_xlim(xmin=0,xmax=xmaxes[i])
-                        #self.axe.set_xticks([0,1,2])
-                        #self.axe.set_xlim(-0.30,2.30)
-                        #self.axe.set_xticklabels(["1 GPU", "4 GPU", "8 GPU"])
-                        #h,l = self.axe.get_legend_handles_labels() # get the handles we want to modify
-                        #l1 = self.axe.legend(h[n_col-1::-1], l[n_col-1::-1], loc=[.425, 0.75])
-                        #self.axe.add_artist(l1)
-                else:
-                    # bin width computation
-                    bin_number = 10000
-                    data_min = np.min(self.data_df[[name]])
-                    data_max = np.max(self.data_df[[name]])
-                    bin_width = (data_max-data_min)/bin_number
-                    print(f"bin_width for {name}: {bin_width}")
-                    # plotting
-                    if number_of_subplots==4:
-                        self.axe = self.data_df[[ name ]].plot.hist(
-                            ax=self.axes[subplot_x,subplot_y],
-                            bins=bin_number,
-                            legend=False,
-                            cmap=self.color_maps[i])
-                    elif number_of_subplots==3:
-                        self.axe = self.data_df[[ name ]].plot.hist(
-                            ax=self.axes[i],
-                            bins=bin_number,
-                            legend=False,
-                            cmap=self.color_maps[i])
-                    #self.axe = self.data_df[[ name ]].plot.kde(
-                    #    ax=self.axes[subplot_x,subplot_y],
-                    #    cmap=self.color_maps[i])
-                    if "postprocess" in times[i]:
-                        base = times[i].capitalize()
-                        suffix = "ing"
-                        second_word = " Runtime"
-                    elif "prediction" in times[i]:
-                        base = "Tensorflow Serving Response Time"
-                        suffix = ""
-                        second_word = ""
-                    elif "network" in times[i]:
-                        base = "Data Transfer"
-                        suffix = ""
-                        second_word = " Time"
-                    plot_subtitle = base + suffix + second_word
-                    self.axe.set_title(plot_subtitle)
-                    self.axe.set_ylabel(self.y_label)
-                    self.axe.set_xlabel('Time (s)')
-                    #self.axe.tick_params(
-                    #        axis='y',
-                    #        which='both',
-                    #        left=False,
-                    #        right=False,
-                    #        labelleft=False)
-                    #ytick_labels = self.axe.get_yticklabels()
-                    #ytick_labels = [float(label.get_text())/bin_width for label in self.axe.get_yticklabels()]
-                    #self.axe.set_yticklabels(ytick_labels)
-                    self.axe.set_ylim(ymin=0)
-                    self.axe.set_xlim(xmin=0,xmax=xmaxes[i])
+                # actually plot
+                if number_of_subplots==4:
+                    self.axe = self.data_df[[ name ]].plot.hist(
+                        ax=self.axes[subplot_x,subplot_y],
+                        bins=bin_number,
+                        legend=False,
+                        cmap=self.color_maps[i])
+                elif number_of_subplots==3:
+                    self.axe = self.data_df[[ name ]].plot.hist(
+                        ax=self.axes[i],
+                        bins=bin_number,
+                        legend=False,
+                        cmap=self.color_maps[i])
+                if "postprocess" in times[i]:
+                    base = times[i].capitalize()
+                    suffix = "ing"
+                    second_word = " Runtime"
+                elif "prediction" in times[i]:
+                    base = "Tensorflow Serving Response Time"
+                    suffix = ""
+                    second_word = ""
+                elif "network" in times[i]:
+                    base = "Data Transfer"
+                    suffix = ""
+                    second_word = " Time"
+                plot_subtitle = base + suffix + second_word
+                self.axe.set_title(plot_subtitle)
+                self.axe.set_ylabel(self.y_label)
+                self.axe.set_xlabel('Time (s)')
+                self.axe.set_ylim(ymin=0,ymax=label_maxes[i]*1.01)
+                self.axe.set_xlim(xmin=0,xmax=xmaxes[i])
+                self.axe.set_yticklabels(labels[i])
             gpu_plot_name = gpu + "_" + self.plot_pdf_name
             plt.savefig(gpu_plot_name, transparent=True)
+
         if False:
             pdb.set_trace()
