@@ -1,22 +1,22 @@
 # figures.py
 
-import pdb
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+
+from os import path
 from matplotlib.colors import LinearSegmentedColormap
 
 from .utils import MissingDataError
 
-from scipy import stats
-
 class BaseFigure(object):
 
-    def __init__(self, raw_data, chosen_delay, chosen_img_num):
+    def __init__(self, raw_data, chosen_delay, chosen_img_num, output_folder):
         self.raw_data = raw_data
         self.chosen_delay = chosen_delay
         self.chosen_img_num = chosen_img_num
+        self.chosen_img_nums = self.chosen_img_num # alias for figures using multiple image numbers
+        self.output_folder = output_folder
 
     def format_data_for_error_plotting(self, data_lists):
         means = []
@@ -61,10 +61,10 @@ class BaseFigure(object):
             self.color_maps.append(cmap)
 
 
-class ImageTimeVsGpu(BaseFigure):
+class ImageTimeVsGpuFigure(BaseFigure):
 
-    def __init__(self, raw_data, chosen_delay, chosen_img_num, title_label, pdf_label):
-        super().__init__(raw_data, chosen_delay, chosen_img_num)
+    def __init__(self, raw_data, chosen_delay, chosen_img_num, pdf_label, output_folder):
+        super().__init__(raw_data, chosen_delay, chosen_img_num, output_folder)
         self.plot_title = "Semantic Segmentation Workflow Component Runtime"
         if chosen_delay==5.0:
             self.plot_pdf_name = pdf_label + "_5sdelay_image_runtimes.pdf"
@@ -272,7 +272,171 @@ class ImageTimeVsGpu(BaseFigure):
                     self.axe.set_xlim(xmin=0,xmax=xmax)
                     self.axe.set_xticks([0,int(xmax/3),int(2*xmax/3),int(xmax)])
             gpu_plot_name = gpu + "_" + self.plot_pdf_name
-            plt.savefig(gpu_plot_name, transparent=True)
+            plt.savefig(path.join(self.output_folder,gpu_plot_name), transparent=True)
 
         if False:
-            pdb.set_trace()
+            import pdb; pdb.set_trace()
+
+class BulkTimeVsGpuFigure(BaseFigure):
+
+    def __init__(self, raw_data, chosen_delay, chosen_img_num, output_folder):
+        super().__init__(raw_data, chosen_delay, chosen_img_num, output_folder)
+        self.plot_title = "Many Image Semantic Segmentation Runtimes"
+        if chosen_delay==5.0:
+            self.plot_pdf_name = "5sdelay_image_bulk_runtimes.pdf"
+        elif chosen_delay==0.5:
+            self.plot_pdf_name = "0point5sdelay_image_bulk_runtimes.pdf"
+        self.y_label = "Counts"
+
+    def refine_data(self):
+        # only choose relevant runs
+        refined_data = []
+        for entry in self.raw_data:
+            if entry["start_delay"] == self.chosen_delay:
+                refined_data.append(entry)
+        if len(refined_data) == 0:
+            raise MissingDataError
+        # grab variables of interest from relevant runs
+        variable_of_interest = 'time_elapsed'
+        gpu_nums = [1,4,8]
+        output_data = {}
+        failed_img_nums = []
+        for img_num in self.chosen_img_nums:
+            data_lists = []
+            for gpu_num in gpu_nums:
+                times = [entry[variable_of_interest] for entry in refined_data if entry['num_gpus']==gpu_num and entry["num_images"]==img_num]
+                data_lists.append(times)
+            print(f"img_num: {img_num}, gpu_num: {gpu_num}")
+            print(data_lists)
+            try:
+                output_data[str(img_num)] = self.format_data_for_error_plotting(data_lists)
+            except ZeroDivisionError:
+                # This probably means that we don't have any data for the chosen time at the chosen delay.
+                print("ZeroDivisionError in format_data_for_error_plotting")
+                failed_img_nums.append(img_num)
+        successful_img_nums = self.chosen_img_nums
+        for img_fail in failed_img_nums:
+            successful_img_nums.remove(img_num)
+        # create DataFrame from variables of interest
+        # 2 is a magic number that derives from the format of the data returned from format_data_for_error_plotting
+        col_num = len(successful_img_nums) * 2
+        row_num = len(gpu_nums)
+        data_array = np.zeros( (row_num, col_num) )
+        for row in range(row_num):
+            for col in range(col_num):
+                var_num = col % len(successful_img_nums)
+                var_index = int( (col - var_num) / len(successful_img_nums) )
+                data_array[row,col] = output_data[ str(successful_img_nums[var_num]) ][ var_index ][ row ]
+        try:
+            self.data_df = pd.DataFrame(data_array, columns=["10000","100000","10000_err","100000_err"], index=["1GPU","4GPU","8GPU"])
+        except ValueError:
+            import pdb; pdb.set_trace()
+
+    def plot(self, labels=None, title="multiple unstacked bar plot", **kwargs):
+        """Given a list of dataframes, with identical columns and index, create a clustered stacked bar plot. 
+           labels is a list of the names of the dataframe, used for the legend title is a string for the 
+           title of the plot H is the hatch used for identification of the different dataframe"""
+
+        # preliminaries
+        self.refine_data()
+        self.define_colorblind_color_maps()
+        
+        n_col = len(self.data_df.columns) 
+        fig, axes = plt.subplots(1, figsize=(20,10))
+        axe = axes
+        axe = self.data_df[["10000", "100000"]].plot(kind="line",
+                        yerr=self.data_df[["10000_err", "100000_err"]].values.T,
+                        linewidth=2,
+                        stacked=False,
+                        ax=axe,
+                        legend=False,
+                        grid=False,
+                        **kwargs)  # make bar plots
+
+        axe.set_title(title)
+        axe.set_ylabel(self.y_label)
+        axe.set_xlabel('Number of GPUs')
+        axe.set_xticks([0,1,2])
+        axe.set_xlim(-0.05,2.05)
+        axe.set_xticklabels(["1 GPU", "4 GPU", "8 GPU"])
+        h,l = axe.get_legend_handles_labels() # get the handles we want to modify
+        l1 = axe.legend(h[:n_col], l[:n_col], loc=[.425, 0.75])
+        axe.add_artist(l1)
+        plt.savefig(path.join(self.output_folder,self.plot_pdf_name), transparent=True)
+
+class CostVsGpuFigure(BaseFigure):
+
+    def __init__(self, raw_data, chosen_delay, chosen_img_num, pdf_label, output_folder):
+        super().__init__(raw_data, chosen_delay, chosen_img_num, output_folder)
+        self.plot_title = "Semantic Segmentation Workflow Component Runtime"
+        if chosen_delay==5.0:
+            self.plot_pdf_name = pdf_label + "_5sdelay_costs.pdf"
+        elif chosen_delay==0.5:
+            self.plot_pdf_name = pdf_label + "_0point5sdelay_costs.pdf"
+        self.y_label = "Counts"
+
+    def refine_data(self):
+        # generate df
+        refined_data = []
+        for entry in self.raw_data:
+            if entry["start_delay"] == self.chosen_delay:
+                refined_data.append(entry)
+        refined_data2 = []
+        for entry in refined_data:
+            if entry["num_images"] == self.chosen_img_num:
+                refined_data2.append(entry)
+        if len(refined_data2) == 0:
+            raise MissingDataError
+        # grab variables of interest from relevant runs
+        variables_of_interest = ['total_node_and_networking_costs', 'cpu_node_cost', 'gpu_node_cost', 'extra_network_costs']
+        gpu_nums = [1,4,8]
+        output_data = {}
+        for variable_of_interest in variables_of_interest:
+            data_lists = []
+            for gpu_num in gpu_nums:
+                times = [entry[variable_of_interest] for entry in refined_data2 if entry['num_gpus']==gpu_num]
+                data_lists.append(times)
+            output_data[variable_of_interest] = self.format_data_for_error_plotting(data_lists)
+        # create DataFrame from variables of interest
+        # 2 is a magic number that derives from the format of the data returned from format_data_for_error_plotting
+        col_num = len(variables_of_interest)*2
+        row_num = len(gpu_nums)
+        data_array = np.zeros( (row_num, col_num) )
+        for row in range(row_num):
+            for col in range(col_num):
+                var_num = col % len(variables_of_interest)
+                var_index = int( (col - var_num) / len(variables_of_interest) )
+                data_array[row,col] = output_data[ variables_of_interest[var_num] ][ var_index ][ row ]
+        self.data_df = pd.DataFrame(data_array, columns=["total cost", "cpu node cost","gpu node cost","network costs","total_err","cpu_err","gpu_err","network_err"], index=["1GPU","4GPU","8GPU"])
+
+    def plot(self, labels=None, title="multiple unstacked bar plot", **kwargs):
+        """Given a list of dataframes, with identical columns and index, create a clustered stacked bar plot. 
+           labels is a list of the names of the dataframe, used for the legend title is a string for the 
+           title of the plot H is the hatch used for identification of the different dataframe"""
+
+        # preliminaries
+        self.refine_data()
+        self.define_colorblind_color_maps()
+        n_col = len(self.data_df.columns) 
+        
+        fig, axes = plt.subplots(1, figsize=(20,10))
+        axe = axes
+        axe = self.data_df[["total cost", "cpu node cost", "gpu node cost", "network costs"]].plot(kind="line",
+                        yerr=self.data_df[["total_err", "cpu_err", "gpu_err", "network_err"]].values.T,
+                        linewidth=2,
+                        stacked=False,
+                        ax=axe,
+                        legend=False,
+                        grid=False,
+                        **kwargs)  # make bar plots
+
+        axe.set_title(title)
+        axe.set_ylabel(self.y_label)
+        axe.set_xlabel('Number of GPUs')
+        axe.set_xticks([0,1,2])
+        axe.set_xlim(-0.05,2.05)
+        axe.set_xticklabels(["1 GPU", "4 GPU", "8 GPU"])
+        h,l = axe.get_legend_handles_labels() # get the handles we want to modify
+        l1 = axe.legend(h[:n_col], l[:n_col], loc=[.425, 0.75])
+        axe.add_artist(l1)
+        plt.savefig(path.join(self.output_folder,self.plot_pdf_name), transparent=True)
