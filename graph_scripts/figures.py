@@ -70,7 +70,7 @@ class ImageTimeVsGpu(BaseFigure):
             self.plot_pdf_name = pdf_label + "_5sdelay_image_runtimes.pdf"
         elif chosen_delay==0.5:
             self.plot_pdf_name = pdf_label + "_0point5sdelay_image_runtimes.pdf"
-        self.y_label = "Density (unitless)"
+        self.y_label = "Counts"
 
     def refine_data(self):
         # only choose relevant runs
@@ -102,14 +102,13 @@ class ImageTimeVsGpu(BaseFigure):
         #    raise ValueError("I don't know how to deal properly with different list lengths.")
         row_num = max(variable_lengths)*replicates
         col_num = len(gpu_nums)*len(variables_of_interest)
-        
+
+        # TODO: simplify series padding, which occurs here and in one block in graph_creation.py
         data_array = np.zeros( (row_num, col_num) )
         for col in range(col_num):
             variable_name = variables_of_interest[ col % len(variables_of_interest) ]
             gpu_number = gpu_nums[ int( col/len(variables_of_interest) ) % len(gpu_nums) ]
             relevant_data = [ entry[variable_name] for entry in refined_data2 if entry['num_gpus']==gpu_number ]
-            #print(f"col: {col}, len(variables_of_interest): {len(variables_of_interest)}, variable_name: {variable_name}")
-            #print(f"col: {col}, gpu_number: {gpu_number}")
             for row in range(row_num):
                 replicate_number = int( row / max(variable_lengths) )
                 replicate_length = len(relevant_data[replicate_number])
@@ -117,7 +116,8 @@ class ImageTimeVsGpu(BaseFigure):
                 if replicate_desired_entry < replicate_length:
                     data_array[row,col] = relevant_data[replicate_number][replicate_desired_entry]
                 else:
-                    data_array[row,col] = np.nan
+                    #data_array[row,col] = np.nan
+                    data_array[row,col] = np.average(relevant_data[replicate_number])
         self.data_df = pd.DataFrame(data_array, columns=[
             "1GPU_total",
             "1GPU_network",
@@ -145,32 +145,37 @@ class ImageTimeVsGpu(BaseFigure):
         self.refine_data()
         self.define_colorblind_color_maps()
         
+        font_size = 16
+        plt.rc('axes', titlesize=font_size)     # fontsize of the axes title
+        plt.rc('axes', labelsize=font_size)    # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=font_size)    # fontsize of the tick labels
+        plt.rc('ytick', labelsize=font_size)    # fontsize of the tick labels
         # plot and save figures for each number of GPUs
-        bin_number = 10000
+        bin_number = 1000
         gpus = ["1GPU", "4GPU", "8GPU"]
         for gpu in gpus:
             n_col = len(self.data_df.columns) 
             if self.chosen_img_num == 1000000:
                 if gpu == "1GPU":
-                    xmaxes = [7,25,3,7]
+                    xmaxes = [5,25,3,7]
                 elif gpu == "4GPU":
-                    xmaxes = [2,120,3,2]
+                    xmaxes = [5,120,3,2]
                 elif gpu == "8GPU":
-                    xmaxes = [2,120,3,2]
+                    xmaxes = [5,120,3,2]
             elif self.chosen_img_num == 100000:
                 if gpu == "1GPU":
-                    xmaxes = [7,25,3,7]
+                    xmaxes = [14,25,3,7]
                 elif gpu == "4GPU":
-                    xmaxes = [2,120,3,2]
+                    xmaxes = [5,120,3,2]
                 elif gpu == "8GPU":
-                    xmaxes = [2,120,3,2]
+                    xmaxes = [5,120,3,2]
             elif self.chosen_img_num == 10000:
                 if gpu == "1GPU":
-                    xmaxes = [2,25,3,1.5]
+                    xmaxes = [6,25,3,1.5]
                 elif gpu == "4GPU":
-                    xmaxes = [2,120,3,1.5]
+                    xmaxes = [5,120,3,1.5]
                 elif gpu == "8GPU":
-                    xmaxes = [2,120,3,1.5]
+                    xmaxes = [5,120,3,1.5]
             # choose type of time measurement for each subplot
             times = ["network", "prediction", "postprocess"]
             number_of_subplots = len(times)
@@ -185,35 +190,61 @@ class ImageTimeVsGpu(BaseFigure):
                 fig, self.axes = plt.subplots(nrows=2, ncols=2, figsize=(20,10))
             elif number_of_subplots == 3:
                 fig, self.axes = plt.subplots(nrows=1, ncols=3, figsize=(20,10))
-            figure_title = "Semantic Segmentation Workflow Runtimes"
-            fig.suptitle(figure_title, fontsize="x-large")
+                fig.subplots_adjust(wspace=0.3)
             for i in range(number_of_subplots):
-                # compute bin width
                 name = gpu + "_" + times[i]
-                data_min = np.min(self.data_df[[name]])
-                data_max = np.max(self.data_df[[name]])
-                bin_width = (data_max - data_min)/bin_number
-                bin_widths.append(bin_width)
-                print(f"bin_width for {name}: {bin_width}")
-                # plot dummy plot
                 if number_of_subplots==4:
                     subplot_x = int("{:02b}".format(i)[0])
                     subplot_y = int("{:02b}".format(i)[1])
                     print(f"Creating plot {name} in position {subplot_x},{subplot_y}.")
                 elif number_of_subplots==3:
                     print(f"Creating plot {name} in position {i}.")
-                if number_of_subplots==4:
-                    self.axe = self.data_df[[ name ]].plot.hist(
-                        ax=self.axes[subplot_x,subplot_y],
-                        bins=bin_number,
-                        legend=False,
-                        cmap=self.color_maps[i])
-                elif number_of_subplots==3:
-                    self.axe = self.data_df[[ name ]].plot.hist(
-                        ax=self.axes[i],
-                        bins=bin_number,
-                        legend=False,
-                        cmap=self.color_maps[i])
+                try:
+                    print(f"Sum of 1000 bin histogram counts: {np.sum(np.histogram(self.data_df[[name]],bins=1000)[0])}")
+                except ValueError:
+                    print(f"Whoopsie. Nan error. No histogram stats reported for {name}.")
+                print(f"Max value in {name}: {np.max(self.data_df[[name]])}")
+                fixed_bin_width = True
+                fixed_bin_number = False
+                assert (fixed_bin_width and not fixed_bin_number) or (fixed_bin_number and not fixed_bin_width)
+                if fixed_bin_width:
+                    # compute bin cutoffs
+                    data_min = np.min(self.data_df[[name]])
+                    data_max = np.max(self.data_df[[name]])
+                    max_increment = np.ceil(data_max-data_min)
+                    bin_cutoffs = [float(data_min + increment) for increment in np.linspace( 0, max_increment, max_increment*10+1)]
+                    #print(f"bin cutoffs for {name}: {bin_cutoffs}")
+                    if number_of_subplots==4:
+                        self.axe = self.data_df[[ name ]].plot.hist(
+                            ax=self.axes[subplot_x,subplot_y],
+                            bins=bin_cutoffs,
+                            legend=False,
+                            cmap=self.color_maps[i])
+                    elif number_of_subplots==3:
+                        self.axe = self.data_df[[ name ]].plot.hist(
+                            ax=self.axes[i],
+                            bins=bin_cutoffs,
+                            legend=False,
+                            cmap=self.color_maps[i])
+                elif fixed_bin_number:
+                    # compute bin width
+                    data_min = np.min(self.data_df[[name]])
+                    data_max = np.max(self.data_df[[name]])
+                    bin_width = (data_max - data_min)/bin_number
+                    bin_widths.append(bin_width)
+                    print(f"bin_width for {name}: {bin_width}")
+                    if number_of_subplots==4:
+                        self.axe = self.data_df[[ name ]].plot.hist(
+                            ax=self.axes[subplot_x,subplot_y],
+                            bins=bin_number,
+                            legend=False,
+                            cmap=self.color_maps[i])
+                    elif number_of_subplots==3:
+                        self.axe = self.data_df[[ name ]].plot.hist(
+                            ax=self.axes[i],
+                            bins=bin_number,
+                            legend=False,
+                            cmap=self.color_maps[i])
                 if "postprocess" in times[i]:
                     base = times[i].capitalize()
                     suffix = "ing"
@@ -231,73 +262,15 @@ class ImageTimeVsGpu(BaseFigure):
                 self.axe.set_ylabel(self.y_label)
                 self.axe.set_xlabel('Time (s)')
                 self.axe.set_ylim(ymin=0)
-                self.axe.set_xlim(xmin=0,xmax=xmaxes[i])
-            gpu_plot_name = gpu + "_" + self.plot_pdf_name
-            plt.savefig(gpu_plot_name, transparent=True)
-
-            # get y axis labels from dummy figure
-            labels = []
-            label_maxes = []
-            for i in range(number_of_subplots):
-                subplot_labels = [ float(label.get_text()) for label in self.axes[i].get_yticklabels() ]
-                try:
-                    labels_max = np.max(subplot_labels)
-                    label_maxes.append(labels_max)
-                except TypeError:
-                    pdb.set_trace()
-                try:
-                    modified_subplot_labels = [ str(label/labels_max)[:4] for label in subplot_labels ]
-                except IndexError:
-                    pdb.set_trace()
-                labels.append(modified_subplot_labels)
-
-            # Now, make real figure
-            if number_of_subplots == 4:
-                fig, self.axes = plt.subplots(nrows=2, ncols=2, figsize=(20,10))
-            elif number_of_subplots == 3:
-                fig, self.axes = plt.subplots(nrows=1, ncols=3, figsize=(20,10))
-            figure_title = "Semantic Segmentation Workflow Runtimes"
-            fig.suptitle(figure_title, fontsize="x-large")
-            for i in range(number_of_subplots): # magic number for 2x2 plot
-                name = gpu + "_" + times[i]
-                if number_of_subplots==4:
-                    subplot_x = int("{:02b}".format(i)[0])
-                    subplot_y = int("{:02b}".format(i)[1])
-                    print(f"Creating plot {name} in position {subplot_x},{subplot_y}.")
-                elif number_of_subplots==3:
-                    print(f"Creating plot {name} in position {i}.")
-                # actually plot
-                if number_of_subplots==4:
-                    self.axe = self.data_df[[ name ]].plot.hist(
-                        ax=self.axes[subplot_x,subplot_y],
-                        bins=bin_number,
-                        legend=False,
-                        cmap=self.color_maps[i])
-                elif number_of_subplots==3:
-                    self.axe = self.data_df[[ name ]].plot.hist(
-                        ax=self.axes[i],
-                        bins=bin_number,
-                        legend=False,
-                        cmap=self.color_maps[i])
-                if "postprocess" in times[i]:
-                    base = times[i].capitalize()
-                    suffix = "ing"
-                    second_word = " Runtime"
-                elif "prediction" in times[i]:
-                    base = "Tensorflow Serving Response Time"
-                    suffix = ""
-                    second_word = ""
-                elif "network" in times[i]:
-                    base = "Data Transfer"
-                    suffix = ""
-                    second_word = " Time"
-                plot_subtitle = base + suffix + second_word
-                self.axe.set_title(plot_subtitle)
-                self.axe.set_ylabel(self.y_label)
-                self.axe.set_xlabel('Time (s)')
-                self.axe.set_ylim(ymin=0,ymax=label_maxes[i]*1.01)
-                self.axe.set_xlim(xmin=0,xmax=xmaxes[i])
-                self.axe.set_yticklabels(labels[i])
+                if False:
+                    # cut off tail
+                    self.axe.set_xlim(xmin=0,xmax=xmaxes[i])
+                    self.axe.set_xticks([0,int(xmaxes[i]/3),int(2*xmaxes[i]/3),xmaxes[i]])
+                else:
+                    # show full distribution
+                    xmax = np.max(self.data_df[[name]])[0]
+                    self.axe.set_xlim(xmin=0,xmax=xmax)
+                    self.axe.set_xticks([0,int(xmax/3),int(2*xmax/3),int(xmax)])
             gpu_plot_name = gpu + "_" + self.plot_pdf_name
             plt.savefig(gpu_plot_name, transparent=True)
 

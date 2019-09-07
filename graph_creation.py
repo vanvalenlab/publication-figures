@@ -23,6 +23,8 @@ import pdb
 from graph_scripts.utils import MissingDataError
 from graph_scripts.figures import ImageTimeVsGpu
 
+from numpy.core._exceptions import UFuncTypeError
+
 # custom execption for a failing regex
 class NoGpuError(Exception):
     pass
@@ -90,8 +92,9 @@ def extract_data():
             all_prediction_times = []
             all_postprocess_times = []
             all_download_times = []
-            for i in range(100):
+            for i in range(json_data['num_jobs']):
                 try:
+                    # TODO: potentially pad all data?
                     # gather raw times
                     total_times = json_data['job_data'][i]['total_time']
                     upload_times = json_data['job_data'][i]['upload_time']
@@ -126,7 +129,48 @@ def extract_data():
             data_to_keep['average_image_postprocess_time'] = data_to_keep['total_image_postprocess_time']/total_successes
             data_to_keep['average_image_download_time'] = data_to_keep['total_image_download_time']/total_successes
             data_to_keep['all_total_times'] = all_total_times
-            data_to_keep['all_network_times'] = 3*all_upload_times + 3*all_download_times 
+            upload_download_multiplier = 2
+            # We need to wrap all this in a while loop because we might hit multiple exceptions in series.
+            while True:
+                try:
+                    data_to_keep['all_network_times'] = np.add( np.dot(upload_download_multiplier,all_upload_times), np.dot(upload_download_multiplier,all_download_times))
+                    break
+                # Sometimes the upload and download series would have slightly different numbers of entries.
+                # This is likely due to Redis not yet having the data on rare occasions when we ask for it.
+                # We don't consider this to be a huge concern and note that it only marginally affects the
+                # completeness of our data. Further, it doesn't bias our results.
+                except ValueError:
+                    upload_length = len(all_upload_times)
+                    download_length = len(all_download_times)
+                    if upload_length < download_length:
+                        upload_average = np.average(all_upload_times)
+                        length_diff = download_length - upload_length
+                        for i in range(length_diff):
+                            all_upload_times = np.append(all_upload_times, upload_average)
+                    elif download_length < upload_length:
+                        download_average = np.average(all_download_times)
+                        length_diff = upload_length - download_length
+                        for i in range(length_diff):
+                            all_download_times = np.append(all_download_times, download_average)
+                    else:
+                        raise ValueError
+                # We had some entries that were text??? Very weird and I want to make sure this wasn't an issue.
+                except UFuncTypeError as e:
+                    for i, upload in enumerate(all_upload_times):
+                        if type(upload)==str:
+                            all_upload_times[i] = np.nan
+                    upload_mean = np.nanmean(all_upload_times)
+                    for i, upload in enumerate(all_upload_times):
+                        if np.isnan(upload):
+                            all_upload_times[i] = upload_mean
+                    for i, download in enumerate(all_download_times):
+                        if type(download)==str:
+                            all_download_times[i] = np.nan
+                    download_mean = np.nanmean(all_download_times)
+                    for i, download in enumerate(all_download_times):
+                        if np.isnan(download):
+                            all_download_times[i] = download_mean
+                    print("ufunktypeerror!!!")
             data_to_keep['all_upload_times'] = all_upload_times
             data_to_keep['all_prediction_times'] = all_prediction_times
             data_to_keep['all_postprocess_times'] = all_postprocess_times
@@ -377,7 +421,6 @@ if __name__=='__main__':
                 except MissingDataError:
                     print(f"No data for gpu vs cost for delay {chosen_delay} and img_num {chosen_img_num}.")
                     pass
-    pdb.set_trace()
 
 
 
@@ -398,3 +441,6 @@ if __name__=='__main__':
                 print(f"No data for gpu vs cost for delay {chosen_delay} and img_num {chosen_img_num}.")
                 pass
     pdb.set_trace()
+
+    if False:
+        pdb.set_trace()
