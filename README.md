@@ -1,0 +1,1 @@
+To create the figures, first place all data in folder at this level called `new_data `, then install all required python packages using `pip install -r requirements.txt`, then execute `python3 graph_creation.py`.
