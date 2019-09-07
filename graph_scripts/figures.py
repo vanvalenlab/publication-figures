@@ -262,7 +262,7 @@ class ImageTimeVsGpu(BaseFigure):
                 self.axe.set_ylabel(self.y_label)
                 self.axe.set_xlabel('Time (s)')
                 self.axe.set_ylim(ymin=0)
-                if False:
+                if True:
                     # cut off tail
                     self.axe.set_xlim(xmin=0,xmax=xmaxes[i])
                     self.axe.set_xticks([0,int(xmaxes[i]/3),int(2*xmaxes[i]/3),xmaxes[i]])
