@@ -84,7 +84,7 @@ if __name__ == '__main__':
 
     # configuration parameters
     INPUT_FOLDER = "new_data"
-    INPUT_FOLDER = "outputs"
+    OUTPUT_FOLDER = "outputs"
     DELAYS = [5.0]
     #DELAYS = [0.5, 5.0]
     IMG_NUMS = [10000, 100000, 1000000]
