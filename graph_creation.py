@@ -12,6 +12,7 @@ from os import path, getcwd
 from graph_scripts import utils
 from graph_scripts.utils import MissingDataError
 from graph_scripts.figures import ImageTimeVsGpuFigure, BulkTimeVsGpuFigure, CostVsGpuFigure
+from graph_scripts.data_extractor import DataExtractor
 
 def create_figures():
     """
@@ -20,7 +21,10 @@ def create_figures():
     block in the source code to view or set parameters.
     """
 
-    raw_data = utils.extract_data(INPUT_FOLDER)
+    # extract data from json files and format it
+    data_extractor = DataExtractor(INPUT_FOLDER)
+    data_extractor.extract_data()
+    raw_data = data_extractor.aggregated_data
 
     for chosen_delay in DELAYS:
         # create multiple-image-number graph
