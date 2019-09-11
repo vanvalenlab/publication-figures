@@ -533,7 +533,7 @@ class CostVsGpuFigure(BaseFigure):
         plt.rc('xtick', labelsize=self.font_size)    # fontsize of the tick labels
         plt.rc('ytick', labelsize=self.font_size)    # fontsize of the tick labels
         
-        fig, axes = plt.subplots(1, figsize=(20,10))
+        fig, axes = plt.subplots(1, figsize=(15,10))
         axe = axes
         if False:
             axe = self.data_df[["total cost", "cpu node cost", "gpu node cost", "network costs"]].plot(kind="bar",
@@ -546,41 +546,64 @@ class CostVsGpuFigure(BaseFigure):
                         **kwargs)  # make bar plots
         xmin=-0.25
         xmax=2.25
-        bar_width = 0.15
+        bar_width = 0.35
         x_ticks = [0.18,1,1.82]
         x_ticks1 = [x_tick-(bar_width*1.5) for x_tick in x_ticks]
         x_ticks2 = [x_tick-(bar_width*0.5) for x_tick in x_ticks]
         x_ticks3 = [x_tick+(bar_width*0.5) for x_tick in x_ticks]
         x_ticks4 = [x_tick+(bar_width*1.5) for x_tick in x_ticks]
         n_col = len(self.data_df.columns) 
+        if False:
+            axe.bar(
+                x_ticks1,
+                self.data_df.loc[["1GPU","4GPU","8GPU"],"network costs"],
+                yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"network_err"],
+                width=bar_width,
+                color=self.color_maps[0](0),
+                bottom=None)
+            axe.bar(
+                x_ticks2,
+                self.data_df.loc[["1GPU","4GPU","8GPU"],"gpu node cost"],
+                yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"gpu_err"],
+                width=bar_width,
+                color=self.color_maps[0](1),
+                bottom=None)
+            axe.bar(
+                x_ticks3,
+                self.data_df.loc[["1GPU","4GPU","8GPU"],"cpu node cost"],
+                yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"cpu_err"],
+                width=bar_width,
+                color=self.color_maps[0](2),
+                bottom=None)
+            axe.bar(
+                x_ticks4,
+                self.data_df.loc[["1GPU","4GPU","8GPU"],"total cost"],
+                yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"total_err"],
+                width=bar_width,
+                color=self.color_maps[0](3),
+                bottom=None)
+        #import pdb; pdb.set_trace()
         axe.bar(
-            x_ticks1,
+            x_ticks,
             self.data_df.loc[["1GPU","4GPU","8GPU"],"network costs"],
             yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"network_err"],
             width=bar_width,
             color=self.color_maps[0](0),
             bottom=None)
         axe.bar(
-            x_ticks2,
+            x_ticks,
             self.data_df.loc[["1GPU","4GPU","8GPU"],"gpu node cost"],
             yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"gpu_err"],
             width=bar_width,
             color=self.color_maps[0](1),
-            bottom=None)
+            bottom=self.data_df.loc[["1GPU","4GPU","8GPU"],"network costs"])
         axe.bar(
-            x_ticks3,
+            x_ticks,
             self.data_df.loc[["1GPU","4GPU","8GPU"],"cpu node cost"],
             yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"cpu_err"],
             width=bar_width,
             color=self.color_maps[0](2),
-            bottom=None)
-        axe.bar(
-            x_ticks4,
-            self.data_df.loc[["1GPU","4GPU","8GPU"],"total cost"],
-            yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"total_err"],
-            width=bar_width,
-            color=self.color_maps[0](3),
-            bottom=None)
+            bottom=self.data_df.loc[["1GPU","4GPU","8GPU"],"gpu node cost"]+self.data_df.loc[["1GPU","4GPU","8GPU"],"network costs"])
 
 
         axe.set_title(self.plot_title)
@@ -592,7 +615,7 @@ class CostVsGpuFigure(BaseFigure):
         #h,l = axe.get_legend_handles_labels() # get the handles we want to modify
         #l1 = axe.legend(h[:n_col], l[:n_col], loc=[.425, 0.75])
         #axe.add_artist(l1)
-        axe.legend(["Network and Data Costs", "GPU Node Cost", "CPU Node Cost", "Total Costs"],
+        axe.legend(["Network and Data Costs", "GPU Node Cost", "CPU Node Cost"],
             prop={'size':self.font_size},
-            loc=[0.425,0.75])
+            loc=[0.30,0.75])
         plt.savefig(path.join(self.output_folder,self.plot_pdf_name), transparent=True)
