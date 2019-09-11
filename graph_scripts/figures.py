@@ -17,36 +17,57 @@ class BaseFigure(object):
         self.chosen_img_num = chosen_img_num
         self.chosen_img_nums = self.chosen_img_num # alias for figures using multiple image numbers
         self.output_folder = output_folder
+        self.font_size = 20
 
+    # TODO: this is for symmetric data, but our data is necessarily non-negative
     def format_data_for_error_plotting(self, data_lists):
         means = []
+        std_devs = []
         std_errs_of_means = []
         percentiles_975 = []
         percentiles_025 = []
         one_sided_95_percent_intervals = []
         for datum_list in data_lists:
-            # compute mean
-            total = 0
-            for datum in datum_list:
-                total = total + datum
-            mean = total/len(datum_list)
-            means.append(mean)
+            if len(datum_list) > 1:
+                # compute mean
+                total = 0
+                for datum in datum_list:
+                    total = total + datum
+                mean = total/len(datum_list)
+                means.append(mean)
 
-            # compute standard error of mean
-            squared_deviations = 0
-            for datum in datum_list:
-                squared_deviations = squared_deviations + (datum - mean)**2
-            std_dev = ( (1/(len(datum_list)-1)) * squared_deviations)**(1/2)
-            std_err_of_mean = std_dev/(len(datum_list)**(1/2))
-            std_errs_of_means.append(std_err_of_mean)
+                # compute standard error of mean
+                squared_deviations = 0
+                for datum in datum_list:
+                    squared_deviations = squared_deviations + (datum - mean)**2
+                std_dev = ( (1/(len(datum_list)-1)) * squared_deviations)**(1/2)
+                std_devs.append(std_dev)
+                std_err_of_mean = std_dev/(len(datum_list)**(1/2))
+                std_errs_of_means.append(std_err_of_mean)
 
-            # compute 95% confidence intervals
-            percentile_975 = mean + (std_err_of_mean * 1.96)
-            percentile_025 = mean - (std_err_of_mean * 1.96)
-            percentiles_975.append(percentile_975)
-            percentiles_025.append(percentile_025)
-            one_sided_95_percent_intervals.append(std_err_of_mean * 1.96)
-        return (means, one_sided_95_percent_intervals)
+                # compute 95% confidence intervals
+                percentile_975 = mean + (std_err_of_mean * 1.96)
+                percentile_025 = mean - (std_err_of_mean * 1.96)
+                percentiles_975.append(percentile_975)
+                percentiles_025.append(percentile_025)
+                one_sided_95_percent_intervals.append(std_err_of_mean * 1.96)
+            elif len(datum_list)==1:
+                # TODO: this is a hack to deal with the 1,000,000 image situations, where we don't have replicates
+                mean = np.nanmean(datum_list)
+                means.append(mean)
+                one_sided_95_percent_intervals.append(0)
+                std_devs.append(0)
+            else:
+                # TODO: this is another hack to deal with the fact that we don't even have complete series of data for the 1,000,000 image case
+                # len(datum_list)==0 ?
+                # raise error for now
+                #raise ValueError("No data???")
+                mean = np.nan
+                means.append(mean)
+                one_sided_95_percent_intervals.append(mean)
+                std_devs.append(mean)
+        #return (means, one_sided_95_percent_intervals)
+        return (means, std_devs)
 
     def define_colorblind_color_maps(self):
         # (R,G,B) from nature methods Sky blue, bluish green, reddish purple, vermillion, orange
@@ -66,9 +87,9 @@ class ImageTimeVsGpuFigure(BaseFigure):
     def __init__(self, raw_data, chosen_delay, chosen_img_num, pdf_label, output_folder):
         super().__init__(raw_data, chosen_delay, chosen_img_num, output_folder)
         self.plot_title = "Semantic Segmentation Workflow Component Runtime"
-        if chosen_delay==5.0:
+        if self.chosen_delay==5.0:
             self.plot_pdf_name = pdf_label + "_5sdelay_image_runtimes.pdf"
-        elif chosen_delay==0.5:
+        elif self.chosen_delay==0.5:
             self.plot_pdf_name = pdf_label + "_0point5sdelay_image_runtimes.pdf"
         self.y_label = "Counts"
 
@@ -114,7 +135,17 @@ class ImageTimeVsGpuFigure(BaseFigure):
                 replicate_length = len(relevant_data[replicate_number])
                 replicate_desired_entry = row % max(variable_lengths)
                 if replicate_desired_entry < replicate_length:
-                    data_array[row,col] = relevant_data[replicate_number][replicate_desired_entry]
+                    try:
+                        data_array[row,col] = relevant_data[replicate_number][replicate_desired_entry]
+                    except ValueError:
+                        for i, datum in enumerate(relevant_data[replicate_number]):
+                            if isinstance(datum, str):
+                                relevant_data[replicate_number][i] = np.nan
+                        relevant_data_mean = np.nanmean(relevant_data[replicate_number])
+                        for i, datum in enumerate(relevant_data[replicate_number]):
+                            if np.isnan(datum):
+                                relevant_data[replicate_number][i] = relevant_data_mean
+                        data_array[row,col] = relevant_data[replicate_number][replicate_desired_entry]
                 else:
                     #data_array[row,col] = np.nan
                     data_array[row,col] = np.average(relevant_data[replicate_number])
@@ -145,11 +176,10 @@ class ImageTimeVsGpuFigure(BaseFigure):
         self.refine_data()
         self.define_colorblind_color_maps()
         
-        font_size = 16
-        plt.rc('axes', titlesize=font_size)     # fontsize of the axes title
-        plt.rc('axes', labelsize=font_size)    # fontsize of the x and y labels
-        plt.rc('xtick', labelsize=font_size)    # fontsize of the tick labels
-        plt.rc('ytick', labelsize=font_size)    # fontsize of the tick labels
+        plt.rc('axes', titlesize=self.font_size)     # fontsize of the axes title
+        plt.rc('axes', labelsize=self.font_size)    # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=self.font_size)    # fontsize of the tick labels
+        plt.rc('ytick', labelsize=self.font_size)    # fontsize of the tick labels
         # plot and save figures for each number of GPUs
         bin_number = 1000
         gpus = ["1GPU", "4GPU", "8GPU"]
@@ -158,24 +188,31 @@ class ImageTimeVsGpuFigure(BaseFigure):
             if self.chosen_img_num == 1000000:
                 if gpu == "1GPU":
                     xmaxes = [5,25,3,7]
+                    custom_xticks0 = [0,1,2,3,4,5]
                 elif gpu == "4GPU":
                     xmaxes = [5,120,3,2]
+                    custom_xticks0 = [0,1,2,3,4,5]
                 elif gpu == "8GPU":
                     xmaxes = [5,120,3,2]
+                    custom_xticks0 = [0,1,2,3,4,5]
             elif self.chosen_img_num == 100000:
                 if gpu == "1GPU":
                     xmaxes = [14,25,3,7]
                 elif gpu == "4GPU":
                     xmaxes = [5,120,3,2]
+                    custom_xticks0 = [0,1,2,3,4,5]
                 elif gpu == "8GPU":
                     xmaxes = [5,120,3,2]
+                    custom_xticks0 = [0,1,2,3,4,5]
             elif self.chosen_img_num == 10000:
                 if gpu == "1GPU":
                     xmaxes = [6,25,3,1.5]
                 elif gpu == "4GPU":
                     xmaxes = [5,120,3,1.5]
+                    custom_xticks0 = [0,1,2,3,4,5]
                 elif gpu == "8GPU":
                     xmaxes = [5,120,3,1.5]
+                    custom_xticks0 = [0,1,2,3,4,5]
             # choose type of time measurement for each subplot
             times = ["network", "prediction", "postprocess"]
             number_of_subplots = len(times)
@@ -259,13 +296,27 @@ class ImageTimeVsGpuFigure(BaseFigure):
                     second_word = " Time"
                 plot_subtitle = base + suffix + second_word
                 self.axe.set_title(plot_subtitle)
-                self.axe.set_ylabel(self.y_label)
-                self.axe.set_xlabel('Time (s)')
+                if i==0:
+                    self.axe.set_ylabel(self.y_label)
+                else:
+                    self.axe.set_ylabel("")
+                if i==1:
+                    self.axe.set_xlabel('Time (s)')
+                else:
+                    self.axe.set_xlabel("")
                 self.axe.set_ylim(ymin=0)
                 if True:
                     # cut off tail
                     self.axe.set_xlim(xmin=0,xmax=xmaxes[i])
-                    self.axe.set_xticks([0,int(xmaxes[i]/3),int(2*xmaxes[i]/3),xmaxes[i]])
+                    if i==0:
+                        try:
+                            custom_xticks0
+                        except NameError:
+                            self.axe.set_xticks([0,int(xmaxes[i]/3),int(2*xmaxes[i]/3),xmaxes[i]])
+                        else:
+                            self.axe.set_xticks(custom_xticks0)
+                    else:
+                        self.axe.set_xticks([0,int(xmaxes[i]/3),int(2*xmaxes[i]/3),xmaxes[i]])
                 else:
                     # show full distribution
                     xmax = np.max(self.data_df[[name]])[0]
@@ -282,11 +333,11 @@ class BulkTimeVsGpuFigure(BaseFigure):
     def __init__(self, raw_data, chosen_delay, chosen_img_num, output_folder):
         super().__init__(raw_data, chosen_delay, chosen_img_num, output_folder)
         self.plot_title = "Many Image Semantic Segmentation Runtimes"
-        if chosen_delay==5.0:
+        if self.chosen_delay==5.0:
             self.plot_pdf_name = "5sdelay_image_bulk_runtimes.pdf"
-        elif chosen_delay==0.5:
+        elif self.chosen_delay==0.5:
             self.plot_pdf_name = "0point5sdelay_image_bulk_runtimes.pdf"
-        self.y_label = "Counts"
+        self.y_label = "Time (min)"
 
     def refine_data(self):
         # only choose relevant runs
@@ -314,6 +365,8 @@ class BulkTimeVsGpuFigure(BaseFigure):
                 # This probably means that we don't have any data for the chosen time at the chosen delay.
                 print("ZeroDivisionError in format_data_for_error_plotting")
                 failed_img_nums.append(img_num)
+            except ValueError:
+                import pdb; pdb.set_trace()
         successful_img_nums = self.chosen_img_nums
         for img_fail in failed_img_nums:
             successful_img_nums.remove(img_num)
@@ -328,11 +381,16 @@ class BulkTimeVsGpuFigure(BaseFigure):
                 var_index = int( (col - var_num) / len(successful_img_nums) )
                 data_array[row,col] = output_data[ str(successful_img_nums[var_num]) ][ var_index ][ row ]
         try:
-            self.data_df = pd.DataFrame(data_array, columns=["10000","100000","10000_err","100000_err"], index=["1GPU","4GPU","8GPU"])
+            if self.chosen_delay==5.0:
+                data_array = np.delete(data_array,5,1)
+                data_array = np.delete(data_array,2,1)
+                self.data_df = pd.DataFrame(data_array, columns=["10000","100000","10000_err","100000_err"], index=["1GPU","4GPU","8GPU"])
+            elif self.chosen_delay==0.5:
+                self.data_df = pd.DataFrame(data_array, columns=["10000","100000","1000000","10000_err","100000_err","1000000_err"], index=["1GPU","4GPU","8GPU"])
         except ValueError:
             import pdb; pdb.set_trace()
 
-    def plot(self, labels=None, title="multiple unstacked bar plot", **kwargs):
+    def plot(self, labels=None, **kwargs):
         """Given a list of dataframes, with identical columns and index, create a clustered stacked bar plot. 
            labels is a list of the names of the dataframe, used for the legend title is a string for the 
            title of the plot H is the hatch used for identification of the different dataframe"""
@@ -341,39 +399,90 @@ class BulkTimeVsGpuFigure(BaseFigure):
         self.refine_data()
         self.define_colorblind_color_maps()
         
+        plt.rc('axes', titlesize=self.font_size)     # fontsize of the axes title
+        plt.rc('axes', labelsize=self.font_size)    # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=self.font_size)    # fontsize of the tick labels
+        plt.rc('ytick', labelsize=self.font_size)    # fontsize of the tick labels
+        
+        # plot data
+        xmin=0.4
+        xmax=1.6
+        bar_width = 0.15
+        x_ticks = [0.5,1,1.5]
+        if self.chosen_delay==5.0:
+            x_ticks1 = [x_tick-bar_width/2 for x_tick in x_ticks]
+            x_ticks2 = [x_tick+bar_width/2 for x_tick in x_ticks]
+        elif self.chosen_delay==0.5:
+            x_ticks1 = [x_tick-bar_width for x_tick in x_ticks]
+            x_ticks2 = [x_tick for x_tick in x_ticks]
+            x_ticks3 = [x_tick+bar_width for x_tick in x_ticks]
         n_col = len(self.data_df.columns) 
-        fig, axes = plt.subplots(1, figsize=(20,10))
+        fig, axes = plt.subplots(1, figsize=(10,15))
         axe = axes
-        axe = self.data_df[["10000", "100000"]].plot(kind="line",
-                        yerr=self.data_df[["10000_err", "100000_err"]].values.T,
-                        linewidth=2,
-                        stacked=False,
-                        ax=axe,
-                        legend=False,
-                        grid=False,
-                        **kwargs)  # make bar plots
+        if False:
+            axe = self.data_df[["10000", "100000"]].plot(kind="bar",
+                            yerr=self.data_df[["10000_err", "100000_err"]].values.T,
+                            linewidth=2,
+                            stacked=False,
+                            ax=axe,
+                            legend=False,
+                            grid=False,
+                            width=bar_width,
+                            **kwargs)  # make bar plots
+        axe.errorbar(x_ticks,
+            self.data_df.loc[["1GPU","4GPU","8GPU"],"10000"],
+            yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"10000_err"],
+            linestyle="None",
+            fmt='o',
+            color=self.color_maps[0](0))
+        axe.errorbar(x_ticks,
+            self.data_df.loc[["1GPU","4GPU","8GPU"],"100000"],
+            yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"100000_err"],
+            linestyle="None",
+            fmt='o',
+            color=self.color_maps[0](1))
+        if self.chosen_delay==0.5:
+            axe.errorbar(x_ticks,
+                self.data_df.loc[["1GPU","4GPU","8GPU"],"1000000"],
+                yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"1000000_err"],
+                linestyle="None",
+                fmt='o',
+                color=self.color_maps[0](2))
 
-        axe.set_title(title)
+        print(f"Bulk runtimes for {self.chosen_delay}:")
+        print(f'10,000 images: {self.data_df.loc[["1GPU","4GPU","8GPU"],"10000"]}')
+        print(f'100,000 images: {self.data_df.loc[["1GPU","4GPU","8GPU"],"100000"]}')
+        try:
+            print(f'1,000,000 images: {self.data_df.loc[["1GPU","4GPU","8GPU"],"1000000"]}')
+        except KeyError:
+            pass
+        axe.set_title(self.plot_title)
         axe.set_ylabel(self.y_label)
         axe.set_xlabel('Number of GPUs')
-        axe.set_xticks([0,1,2])
-        axe.set_xlim(-0.05,2.05)
+        axe.set_xticks(x_ticks)
+        axe.set_xlim(xmin,xmax)
+        axe.set_ylim(ymin=10,ymax=1000)
         axe.set_xticklabels(["1 GPU", "4 GPU", "8 GPU"])
-        h,l = axe.get_legend_handles_labels() # get the handles we want to modify
-        l1 = axe.legend(h[:n_col], l[:n_col], loc=[.425, 0.75])
-        axe.add_artist(l1)
+        axe.set_yscale("log")
+        #h,l = axe.get_legend_handles_labels() # get the handles we want to modify
+        #l1 = axe.legend(h[:n_col], l[:n_col], loc=[.425, 0.75])
+        #axe.add_artist(l1)
+        if self.chosen_delay==5.0:
+            axe.legend(["10,000 Images", "100,000 Images"], prop={'size':self.font_size})
+        elif self.chosen_delay==0.5:
+            axe.legend(["10,000 Images", "100,000 Images", "1,000,000 Images"], prop={'size':self.font_size})
         plt.savefig(path.join(self.output_folder,self.plot_pdf_name), transparent=True)
 
 class CostVsGpuFigure(BaseFigure):
 
     def __init__(self, raw_data, chosen_delay, chosen_img_num, pdf_label, output_folder):
         super().__init__(raw_data, chosen_delay, chosen_img_num, output_folder)
-        self.plot_title = "Semantic Segmentation Workflow Component Runtime"
-        if chosen_delay==5.0:
+        self.plot_title = "Semantic Segmentation Costs"
+        if self.chosen_delay==5.0:
             self.plot_pdf_name = pdf_label + "_5sdelay_costs.pdf"
-        elif chosen_delay==0.5:
+        elif self.chosen_delay==0.5:
             self.plot_pdf_name = pdf_label + "_0point5sdelay_costs.pdf"
-        self.y_label = "Counts"
+        self.y_label = "Cost (USD)"
 
     def refine_data(self):
         # generate df
@@ -419,9 +528,15 @@ class CostVsGpuFigure(BaseFigure):
         self.define_colorblind_color_maps()
         n_col = len(self.data_df.columns) 
         
+        plt.rc('axes', titlesize=self.font_size)     # fontsize of the axes title
+        plt.rc('axes', labelsize=self.font_size)     # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=self.font_size)    # fontsize of the tick labels
+        plt.rc('ytick', labelsize=self.font_size)    # fontsize of the tick labels
+        
         fig, axes = plt.subplots(1, figsize=(20,10))
         axe = axes
-        axe = self.data_df[["total cost", "cpu node cost", "gpu node cost", "network costs"]].plot(kind="line",
+        if False:
+            axe = self.data_df[["total cost", "cpu node cost", "gpu node cost", "network costs"]].plot(kind="bar",
                         yerr=self.data_df[["total_err", "cpu_err", "gpu_err", "network_err"]].values.T,
                         linewidth=2,
                         stacked=False,
@@ -429,14 +544,55 @@ class CostVsGpuFigure(BaseFigure):
                         legend=False,
                         grid=False,
                         **kwargs)  # make bar plots
+        xmin=-0.25
+        xmax=2.25
+        bar_width = 0.15
+        x_ticks = [0.18,1,1.82]
+        x_ticks1 = [x_tick-(bar_width*1.5) for x_tick in x_ticks]
+        x_ticks2 = [x_tick-(bar_width*0.5) for x_tick in x_ticks]
+        x_ticks3 = [x_tick+(bar_width*0.5) for x_tick in x_ticks]
+        x_ticks4 = [x_tick+(bar_width*1.5) for x_tick in x_ticks]
+        n_col = len(self.data_df.columns) 
+        axe.bar(
+            x_ticks1,
+            self.data_df.loc[["1GPU","4GPU","8GPU"],"network costs"],
+            yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"network_err"],
+            width=bar_width,
+            color=self.color_maps[0](0),
+            bottom=None)
+        axe.bar(
+            x_ticks2,
+            self.data_df.loc[["1GPU","4GPU","8GPU"],"gpu node cost"],
+            yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"gpu_err"],
+            width=bar_width,
+            color=self.color_maps[0](1),
+            bottom=None)
+        axe.bar(
+            x_ticks3,
+            self.data_df.loc[["1GPU","4GPU","8GPU"],"cpu node cost"],
+            yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"cpu_err"],
+            width=bar_width,
+            color=self.color_maps[0](2),
+            bottom=None)
+        axe.bar(
+            x_ticks4,
+            self.data_df.loc[["1GPU","4GPU","8GPU"],"total cost"],
+            yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"total_err"],
+            width=bar_width,
+            color=self.color_maps[0](3),
+            bottom=None)
 
-        axe.set_title(title)
+
+        axe.set_title(self.plot_title)
         axe.set_ylabel(self.y_label)
         axe.set_xlabel('Number of GPUs')
-        axe.set_xticks([0,1,2])
-        axe.set_xlim(-0.05,2.05)
+        axe.set_xticks(x_ticks)
+        axe.set_xlim(xmin,xmax)
         axe.set_xticklabels(["1 GPU", "4 GPU", "8 GPU"])
-        h,l = axe.get_legend_handles_labels() # get the handles we want to modify
-        l1 = axe.legend(h[:n_col], l[:n_col], loc=[.425, 0.75])
-        axe.add_artist(l1)
+        #h,l = axe.get_legend_handles_labels() # get the handles we want to modify
+        #l1 = axe.legend(h[:n_col], l[:n_col], loc=[.425, 0.75])
+        #axe.add_artist(l1)
+        axe.legend(["Network and Data Costs", "GPU Node Cost", "CPU Node Cost", "Total Costs"],
+            prop={'size':self.font_size},
+            loc=[0.425,0.75])
         plt.savefig(path.join(self.output_folder,self.plot_pdf_name), transparent=True)

@@ -89,10 +89,10 @@ if __name__ == '__main__':
     # configuration parameters
     INPUT_FOLDER = "new_data"
     OUTPUT_FOLDER = "outputs"
-    DELAYS = [5.0]
-    #DELAYS = [0.5, 5.0]
+    #DELAYS = [5.0]
+    DELAYS = [0.5, 5.0]
     IMG_NUMS = [10000, 100000, 1000000]
-    CREATE_IMAGE_TIME_VS_GPU_FIGURE = True
+    CREATE_IMAGE_TIME_VS_GPU_FIGURE = False
     CREATE_BULK_TIME_VS_GPU_FIGURE = True
     CREATE_COST_VS_GPU_FIGURE = True
 
