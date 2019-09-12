@@ -92,9 +92,9 @@ if __name__ == '__main__':
     #DELAYS = [5.0]
     DELAYS = [0.5, 5.0]
     IMG_NUMS = [10000, 100000, 1000000]
-    CREATE_IMAGE_TIME_VS_GPU_FIGURE = False
-    CREATE_BULK_TIME_VS_GPU_FIGURE = True
-    CREATE_COST_VS_GPU_FIGURE = True
+    CREATE_IMAGE_TIME_VS_GPU_FIGURE = True
+    CREATE_BULK_TIME_VS_GPU_FIGURE = False
+    CREATE_COST_VS_GPU_FIGURE = False
 
     # configure logging
     LOGGER = logging.getLogger(__name__)

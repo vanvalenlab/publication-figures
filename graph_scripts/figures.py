@@ -109,7 +109,10 @@ class ImageTimeVsGpuFigure(BaseFigure):
         # create DataFrame from variables of interest in relevant runs
         variables_of_interest = ['all_total_times', 'all_network_times', 'all_upload_times', 'all_prediction_times', 'all_postprocess_times', 'all_download_times']
         gpu_nums = [1,4,8]
-        replicates = 3
+        if self.chosen_img_num==1000000:
+            replicates = 1
+        else:
+            replicates = 3
         variable_lengths = []
         for variable_of_interest in variables_of_interest:
             for gpu_num in gpu_nums:
@@ -130,25 +133,32 @@ class ImageTimeVsGpuFigure(BaseFigure):
             variable_name = variables_of_interest[ col % len(variables_of_interest) ]
             gpu_number = gpu_nums[ int( col/len(variables_of_interest) ) % len(gpu_nums) ]
             relevant_data = [ entry[variable_name] for entry in refined_data2 if entry['num_gpus']==gpu_number ]
-            for row in range(row_num):
-                replicate_number = int( row / max(variable_lengths) )
-                replicate_length = len(relevant_data[replicate_number])
-                replicate_desired_entry = row % max(variable_lengths)
-                if replicate_desired_entry < replicate_length:
+            # for the 1,000,000 image cases where we don't have any data
+            if len(relevant_data)==0:
+                data_array[:,col] = np.nan
+            else:
+                for row in range(row_num):
+                    replicate_number = int( row / max(variable_lengths) )
                     try:
-                        data_array[row,col] = relevant_data[replicate_number][replicate_desired_entry]
-                    except ValueError:
-                        for i, datum in enumerate(relevant_data[replicate_number]):
-                            if isinstance(datum, str):
-                                relevant_data[replicate_number][i] = np.nan
-                        relevant_data_mean = np.nanmean(relevant_data[replicate_number])
-                        for i, datum in enumerate(relevant_data[replicate_number]):
-                            if np.isnan(datum):
-                                relevant_data[replicate_number][i] = relevant_data_mean
-                        data_array[row,col] = relevant_data[replicate_number][replicate_desired_entry]
-                else:
-                    #data_array[row,col] = np.nan
-                    data_array[row,col] = np.average(relevant_data[replicate_number])
+                        replicate_length = len(relevant_data[replicate_number])
+                    except IndexError:
+                        import pdb; pdb.set_trace()
+                    replicate_desired_entry = row % max(variable_lengths)
+                    if replicate_desired_entry < replicate_length:
+                        try:
+                            data_array[row,col] = relevant_data[replicate_number][replicate_desired_entry]
+                        except ValueError:
+                            for i, datum in enumerate(relevant_data[replicate_number]):
+                                if isinstance(datum, str):
+                                    relevant_data[replicate_number][i] = np.nan
+                            relevant_data_mean = np.nanmean(relevant_data[replicate_number])
+                            for i, datum in enumerate(relevant_data[replicate_number]):
+                                if np.isnan(datum):
+                                    relevant_data[replicate_number][i] = relevant_data_mean
+                            data_array[row,col] = relevant_data[replicate_number][replicate_desired_entry]
+                    else:
+                        #data_array[row,col] = np.nan
+                        data_array[row,col] = np.average(relevant_data[replicate_number])
         self.data_df = pd.DataFrame(data_array, columns=[
             "1GPU_total",
             "1GPU_network",
@@ -184,6 +194,25 @@ class ImageTimeVsGpuFigure(BaseFigure):
         bin_number = 1000
         gpus = ["1GPU", "4GPU", "8GPU"]
         for gpu in gpus:
+            # choose type of time measurement for each subplot
+            times = ["network", "prediction", "postprocess"]
+            number_of_subplots = len(times)
+            # yet again, accommodating partial 1,000,000 image data series
+            no_plot = False
+            for i in range(number_of_subplots):
+                name = gpu + "_" + times[i]
+                try:
+                    if self.data_df[[ name ]].isnull().all()[0]:
+                        pass
+                    else:
+                        break
+                except ValueError:
+                    import pdb; pdb.set_trace()
+                if i==max(range(number_of_subplots)):
+                    # we don't need to be plotting this becasue we have no data
+                    no_plot = True
+            if no_plot:
+                continue
             n_col = len(self.data_df.columns) 
             if self.chosen_img_num == 1000000:
                 if gpu == "1GPU":
@@ -213,9 +242,6 @@ class ImageTimeVsGpuFigure(BaseFigure):
                 elif gpu == "8GPU":
                     xmaxes = [5,120,3,1.5]
                     custom_xticks0 = [0,1,2,3,4,5]
-            # choose type of time measurement for each subplot
-            times = ["network", "prediction", "postprocess"]
-            number_of_subplots = len(times)
 
             # Dummy figure and bin width computation
             # This block serves two purposes:
