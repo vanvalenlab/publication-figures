@@ -679,23 +679,28 @@ class OptimalGpuNumberFigure(BaseFigure):
         plt.rc('ytick', labelsize=self.font_size)    # fontsize of the tick labels
 
         # declare data for plotting
-        image_size_bits = 8000000 # 1000 pixels x 1000 pixels x 8 bits
-        images_per_sec = [ 0.1, 0.25, 0.5, 1, 2, 5, 10, 100 ]
-        gpu_nums = [ 1, 2, 4, 8 ]
-        bits_to_megabits_conversion_factor = 1024*1024
-        all_data = np.zeros( (len(images_per_sec), len(gpu_nums)) )
-        for i, gpus in enumerate(gpu_nums):
-            data = [ x*gpus*image_size_bits/bits_to_megabits_conversion_factor for x in images_per_sec ]
+        image_size_bits = 8000000 # (bits/image), 1000 pixels x 1000 pixels x 8 bits
+        bits_to_megabits_conversion_factor = 1024*1024 # bits/Mb
+        #prediction_speed = [ 0.1, 0.25, 0.5, 1, 2, 5, 10, 100 ] # images/sec
+        #prediction_speed = np.logspace(-1,2,num=200) # images/sec
+        prediction_speed = np.linspace(0.1,100,num=1000) # images/sec
+        #upload_speed = np.logspace(1,3.5,num=50) # [10,~3000], Mb/s 
+        upload_speed =  [ 10, 50, 250, 700, 1200, 1800, 2400, 3000 ] # Mb/s 
+        #gpu_nums = [ 1, 2, 4, 8, 16 ]
+        all_data = np.zeros( (len(prediction_speed), len(upload_speed)) )
+        for i, rate in enumerate(upload_speed):
+            data = [ round( (rate/x)*(image_size_bits/bits_to_megabits_conversion_factor) - 0.5 ) for x in prediction_speed ]
             all_data[:,i] = data        
-        import pdb; pdb.set_trace()
+        
         # plot parameters
         title = "Optimal GPU Numbers for Given Network Speeds and Tensorflow Processing Speeds"
-        xlabel = "Tensorflow Processing Speed (images/s)"
-        ylabel = "Network Transfer Speed (Mb/s)"
+        xlabel = "Prediction Speed (images/s)"
+        ylabel = "Number of GPUs"
         xmin=0
-        xmax=max(images_per_sec)+1
-        ymin=0
-        ymax=np.max(all_data)
+        xmax=max(prediction_speed)+1
+        ymin=0.98
+        ymax=50
+        #ymax=np.max(all_data) + 1
         #x_ticks = [0.5,1,1.5]
         
         # create and configure plot
@@ -709,16 +714,25 @@ class OptimalGpuNumberFigure(BaseFigure):
         #axis.set_xscale("log")
 
         # plot data
-        for i, gpus in enumerate(gpu_nums):
-            if gpus==1:
-                plot_label = str(gpus) + " GPU"
+        for i, rate in enumerate(upload_speed):
+            if rate==1:
+                plot_label = str(rate) + " Mb/s"
             else:
-                plot_label = str(gpus) + " GPUs"
+                plot_label = str(rate) + " Mb/s"
+            color_index = i % self.color_maps[0].N
+            #import pdb; pdb.set_trace()
             axis.plot(
-                images_per_sec,
+                prediction_speed,
                 all_data[:,i],
-                color=self.color_maps[0](i),
+                color=self.color_maps[0](color_index),
                 label=plot_label)
         # add legend
-        axis.legend(["1 GPU", "2 GPUs", "4 GPUs", "8 GPUs"], prop={'size':self.font_size})
+        legend_labels = []
+        for rate in upload_speed:
+            if rate==1:
+                label = str(rate) + " Mb/s"
+            else:
+                label = str(rate) + " Mb/s"
+            legend_labels.append(label)
+        axis.legend(legend_labels, prop={'size':self.font_size})
         plt.savefig(path.join(self.output_folder,self.plot_pdf_name), transparent=True)
