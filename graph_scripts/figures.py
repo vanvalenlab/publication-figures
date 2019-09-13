@@ -2,6 +2,7 @@
 
 import numpy as np
 import pandas as pd
+import matplotlib
 import matplotlib.pyplot as plt
 
 from os import path
@@ -9,15 +10,34 @@ from matplotlib.colors import LinearSegmentedColormap
 
 from .utils import MissingDataError
 
+
 class BaseFigure(object):
 
+    def __init__(self, output_folder):
+        self.font_size = 20
+        self.output_folder = output_folder
+
+    def define_colorblind_color_maps(self):
+        # (R,G,B) from nature methods Sky blue, bluish green, reddish purple, vermillion, orange
+        colors = [(86/255,180/255,233/255), (0,158/255,115/255), (204/255,121/255,167/255), (213/255,94/255,0), (230/255,159/255,0)]
+        self.color_maps = []
+        n_bins = 5
+        for cut_point in range(len(colors)):
+            cmap_name = 'colorblind' + str(cut_point+1)
+            unflattened_new_color_list = [ colors[cut_point:] + colors[:cut_point] ]
+            new_color_list = [color for color_list in unflattened_new_color_list for color in color_list]
+            cmap = LinearSegmentedColormap.from_list(cmap_name, new_color_list, N=n_bins)
+            self.color_maps.append(cmap)
+
+
+class BaseEmpiricalFigure(BaseFigure):
+
     def __init__(self, raw_data, chosen_delay, chosen_img_num, output_folder):
+        super().__init__(output_folder)
         self.raw_data = raw_data
         self.chosen_delay = chosen_delay
         self.chosen_img_num = chosen_img_num
         self.chosen_img_nums = self.chosen_img_num # alias for figures using multiple image numbers
-        self.output_folder = output_folder
-        self.font_size = 20
 
     # TODO: this is for symmetric data, but our data is necessarily non-negative
     def format_data_for_error_plotting(self, data_lists):
@@ -69,20 +89,8 @@ class BaseFigure(object):
         #return (means, one_sided_95_percent_intervals)
         return (means, std_devs)
 
-    def define_colorblind_color_maps(self):
-        # (R,G,B) from nature methods Sky blue, bluish green, reddish purple, vermillion, orange
-        colors = [(86/255,180/255,233/255), (0,158/255,115/255), (204/255,121/255,167/255), (213/255,94/255,0), (230/255,159/255,0)]
-        self.color_maps = []
-        n_bins = 5
-        for cut_point in range(len(colors)):
-            cmap_name = 'colorblind' + str(cut_point+1)
-            unflattened_new_color_list = [ colors[cut_point:] + colors[:cut_point] ]
-            new_color_list = [color for color_list in unflattened_new_color_list for color in color_list]
-            cmap = LinearSegmentedColormap.from_list(cmap_name, new_color_list, N=n_bins)
-            self.color_maps.append(cmap)
 
-
-class ImageTimeVsGpuFigure(BaseFigure):
+class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
 
     def __init__(self, raw_data, chosen_delay, chosen_img_num, pdf_label, output_folder):
         super().__init__(raw_data, chosen_delay, chosen_img_num, output_folder)
@@ -186,6 +194,7 @@ class ImageTimeVsGpuFigure(BaseFigure):
         self.refine_data()
         self.define_colorblind_color_maps()
         
+        matplotlib.rcParams['pdf.fonttype'] = 42
         plt.rc('axes', titlesize=self.font_size)     # fontsize of the axes title
         plt.rc('axes', labelsize=self.font_size)    # fontsize of the x and y labels
         plt.rc('xtick', labelsize=self.font_size)    # fontsize of the tick labels
@@ -354,7 +363,8 @@ class ImageTimeVsGpuFigure(BaseFigure):
         if False:
             import pdb; pdb.set_trace()
 
-class BulkTimeVsGpuFigure(BaseFigure):
+
+class BulkTimeVsGpuFigure(BaseEmpiricalFigure):
 
     def __init__(self, raw_data, chosen_delay, chosen_img_num, output_folder):
         super().__init__(raw_data, chosen_delay, chosen_img_num, output_folder)
@@ -425,6 +435,7 @@ class BulkTimeVsGpuFigure(BaseFigure):
         self.refine_data()
         self.define_colorblind_color_maps()
         
+        matplotlib.rcParams['pdf.fonttype'] = 42
         plt.rc('axes', titlesize=self.font_size)     # fontsize of the axes title
         plt.rc('axes', labelsize=self.font_size)    # fontsize of the x and y labels
         plt.rc('xtick', labelsize=self.font_size)    # fontsize of the tick labels
@@ -499,7 +510,8 @@ class BulkTimeVsGpuFigure(BaseFigure):
             axe.legend(["10,000 Images", "100,000 Images", "1,000,000 Images"], prop={'size':self.font_size})
         plt.savefig(path.join(self.output_folder,self.plot_pdf_name), transparent=True)
 
-class CostVsGpuFigure(BaseFigure):
+
+class CostVsGpuFigure(BaseEmpiricalFigure):
 
     def __init__(self, raw_data, chosen_delay, chosen_img_num, pdf_label, output_folder):
         super().__init__(raw_data, chosen_delay, chosen_img_num, output_folder)
@@ -554,6 +566,7 @@ class CostVsGpuFigure(BaseFigure):
         self.define_colorblind_color_maps()
         n_col = len(self.data_df.columns) 
         
+        matplotlib.rcParams['pdf.fonttype'] = 42
         plt.rc('axes', titlesize=self.font_size)     # fontsize of the axes title
         plt.rc('axes', labelsize=self.font_size)     # fontsize of the x and y labels
         plt.rc('xtick', labelsize=self.font_size)    # fontsize of the tick labels
@@ -644,4 +657,68 @@ class CostVsGpuFigure(BaseFigure):
         axe.legend(["Network and Data Costs", "GPU Node Cost", "CPU Node Cost"],
             prop={'size':self.font_size},
             loc=[0.30,0.75])
+        plt.savefig(path.join(self.output_folder,self.plot_pdf_name), transparent=True)
+
+
+class OptimalGpuNumberFigure(BaseFigure):
+
+    def __init__(self, output_folder):
+        super().__init__(output_folder)
+        self.plot_pdf_name = "optimal_gpu_nums.pdf"
+        self.define_colorblind_color_maps()
+
+    def plot(self, labels=None, **kwargs):
+        """This function plots optimal contours (for a given number of GPUs) on a
+        (network data transfer speed)[Mb/s] vs. (tensorflow image processing speed)[images/s] plot."""
+
+        # matplotlib comfiguration options
+        matplotlib.rcParams['pdf.fonttype'] = 42
+        plt.rc('axes', titlesize=self.font_size)     # fontsize of the axes title
+        plt.rc('axes', labelsize=self.font_size)    # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=self.font_size)    # fontsize of the tick labels
+        plt.rc('ytick', labelsize=self.font_size)    # fontsize of the tick labels
+
+        # declare data for plotting
+        image_size_bits = 8000000 # 1000 pixels x 1000 pixels x 8 bits
+        images_per_sec = [ 0.1, 0.25, 0.5, 1, 2, 5, 10, 100 ]
+        gpu_nums = [ 1, 2, 4, 8 ]
+        bits_to_megabits_conversion_factor = 1024*1024
+        all_data = np.zeros( (len(images_per_sec), len(gpu_nums)) )
+        for i, gpus in enumerate(gpu_nums):
+            data = [ x*gpus*image_size_bits/bits_to_megabits_conversion_factor for x in images_per_sec ]
+            all_data[:,i] = data        
+        import pdb; pdb.set_trace()
+        # plot parameters
+        title = "Optimal GPU Numbers for Given Network Speeds and Tensorflow Processing Speeds"
+        xlabel = "Tensorflow Processing Speed (images/s)"
+        ylabel = "Network Transfer Speed (Mb/s)"
+        xmin=0
+        xmax=max(images_per_sec)+1
+        ymin=0
+        ymax=np.max(all_data)
+        #x_ticks = [0.5,1,1.5]
+        
+        # create and configure plot
+        fig, axis = plt.subplots(1, figsize=(20,10))
+        axis.set_title(title)
+        axis.set_xlabel(xlabel)
+        axis.set_ylabel(ylabel)
+        axis.set_xlim(xmin,xmax)
+        axis.set_ylim(ymin,ymax)
+        #axis.set_xticks(x_ticks)
+        #axis.set_xscale("log")
+
+        # plot data
+        for i, gpus in enumerate(gpu_nums):
+            if gpus==1:
+                plot_label = str(gpus) + " GPU"
+            else:
+                plot_label = str(gpus) + " GPUs"
+            axis.plot(
+                images_per_sec,
+                all_data[:,i],
+                color=self.color_maps[0](i),
+                label=plot_label)
+        # add legend
+        axis.legend(["1 GPU", "2 GPUs", "4 GPUs", "8 GPUs"], prop={'size':self.font_size})
         plt.savefig(path.join(self.output_folder,self.plot_pdf_name), transparent=True)

@@ -11,7 +11,7 @@ from os import path, getcwd
 
 from graph_scripts import utils
 from graph_scripts.utils import MissingDataError
-from graph_scripts.figures import ImageTimeVsGpuFigure, BulkTimeVsGpuFigure, CostVsGpuFigure
+from graph_scripts.figures import ImageTimeVsGpuFigure, BulkTimeVsGpuFigure, CostVsGpuFigure, OptimalGpuNumberFigure
 from graph_scripts.data_extractor import DataExtractor
 
 def create_figures():
@@ -21,11 +21,13 @@ def create_figures():
     block in the source code to view or set parameters.
     """
 
-    # extract data from json files and format it
-    data_extractor = DataExtractor(INPUT_FOLDER)
-    data_extractor.extract_data()
-    raw_data = data_extractor.aggregated_data
+    create_theoretical_figures()
 
+    if CREATE_IMAGE_TIME_VS_GPU_FIGURE or CREATE_BULK_TIME_VS_GPU_FIGURE or CREATE_COST_VS_GPU_FIGURE:
+        raw_data = read_in_data()
+        create_empirical_figures(raw_data)
+
+def create_empirical_figures(raw_data):
     for chosen_delay in DELAYS:
         # create multiple-image-number graph
         if CREATE_BULK_TIME_VS_GPU_FIGURE:
@@ -74,6 +76,23 @@ def create_figures():
                         f"No data for gpu vs cost for "
                         f"delay {chosen_delay} and img_num {chosen_img_num}.")
 
+def create_theoretical_figures():
+    # trace gpu_num lines on top of a (model processing time) vs. (transfer speed) plot
+    if CREATE_OPTIMAL_GPU_NUMBER_FIGURE:
+        optimal_gpu_number_figure = OptimalGpuNumberFigure(OUTPUT_FOLDER)
+        try:
+            optimal_gpu_number_figure.plot()
+            logging.debug(f"Saved {optimal_gpu_number_figure.plot_pdf_name}")
+        except MissingDataError:
+            logging.error(
+                f"How did we get a MissingDataError for an OptimalGpuNumberFigure plot?")
+
+def read_in_data():
+    # extract data from json files and format it
+    data_extractor = DataExtractor(INPUT_FOLDER)
+    data_extractor.extract_data()
+    return data_extractor.aggregated_data
+
 def configure_logging():
     """This function configures logging for the whole module."""
 
@@ -92,9 +111,10 @@ if __name__ == '__main__':
     #DELAYS = [5.0]
     DELAYS = [0.5, 5.0]
     IMG_NUMS = [10000, 100000, 1000000]
-    CREATE_IMAGE_TIME_VS_GPU_FIGURE = True
+    CREATE_IMAGE_TIME_VS_GPU_FIGURE = False
     CREATE_BULK_TIME_VS_GPU_FIGURE = False
     CREATE_COST_VS_GPU_FIGURE = False
+    CREATE_OPTIMAL_GPU_NUMBER_FIGURE = True
 
     # configure logging
     LOGGER = logging.getLogger(__name__)
