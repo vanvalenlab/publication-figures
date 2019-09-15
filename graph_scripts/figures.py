@@ -19,9 +19,9 @@ class BaseFigure(object):
 
     def define_colorblind_color_maps(self):
         # (R,G,B) from nature methods Sky blue, bluish green, reddish purple, vermillion, orange
-        colors = [(86/255,180/255,233/255), (0,158/255,115/255), (204/255,121/255,167/255), (213/255,94/255,0), (230/255,159/255,0)]
+        colors = [(86/255,180/255,233/255), (0,158/255,115/255), (204/255,121/255,167/255), (213/255,94/255,0), (230/255,159/255,0),(0,114/255,178/255),(213/255,94/255,0),(0,0,0)]
         self.color_maps = []
-        n_bins = 5
+        n_bins = 8
         for cut_point in range(len(colors)):
             cmap_name = 'colorblind' + str(cut_point+1)
             unflattened_new_color_list = [ colors[cut_point:] + colors[:cut_point] ]
@@ -659,6 +659,155 @@ class CostVsGpuFigure(BaseEmpiricalFigure):
             loc=[0.30,0.75])
         plt.savefig(path.join(self.output_folder,self.plot_pdf_name), transparent=True)
 
+class AllCostsVsGpuFigure(BaseEmpiricalFigure):
+
+    def __init__(self, raw_data, chosen_delay, chosen_img_num, pdf_label, output_folder):
+        super().__init__(raw_data, chosen_delay, chosen_img_num, output_folder)
+        self.plot_title = "Semantic Segmentation Costs"
+        if self.chosen_delay==5.0:
+            self.plot_pdf_name = "all_5sdelay_costs.pdf"
+        elif self.chosen_delay==0.5:
+            self.plot_pdf_name = "all_0point5sdelay_costs.pdf"
+        self.y_label = "Cost (USD)"
+
+    def refine_data(self):
+        # generate df
+        refined_data = []
+        for entry in self.raw_data:
+            if entry["start_delay"] == self.chosen_delay:
+                refined_data.append(entry)
+        refined_data2 = []
+        for img_num in self.chosen_img_nums:
+            for entry in refined_data:
+                if entry["num_images"] == self.chosen_img_num:
+                    refined_data2.append(entry)
+            if len(refined_data2) == 0:
+                raise MissingDataError
+            # grab variables of interest from relevant runs
+            variables_of_interest = ['total_node_and_networking_costs', 'cpu_node_cost', 'gpu_node_cost', 'extra_network_costs']
+            gpu_nums = [1,4,8]
+            output_data = {}
+            for variable_of_interest in variables_of_interest:
+                data_lists = []
+                for gpu_num in gpu_nums:
+                    times = [entry[variable_of_interest] for entry in refined_data2 if entry['num_gpus']==gpu_num]
+                    data_lists.append(times)
+                output_data[variable_of_interest] = self.format_data_for_error_plotting(data_lists)
+            # create DataFrame from variables of interest
+            # 2 is a magic number that derives from the format of the data returned from format_data_for_error_plotting
+            col_num = len(variables_of_interest)*2
+            row_num = len(gpu_nums)
+            data_array = np.zeros( (row_num, col_num) )
+            for row in range(row_num):
+                for col in range(col_num):
+                    var_num = col % len(variables_of_interest)
+                    var_index = int( (col - var_num) / len(variables_of_interest) )
+                    data_array[row,col] = output_data[ variables_of_interest[var_num] ][ var_index ][ row ]
+            self.data_df = pd.DataFrame(data_array, columns=["total cost", "cpu node cost","gpu node cost","network costs","total_err","cpu_err","gpu_err","network_err"], index=["1GPU","4GPU","8GPU"])
+
+    def plot(self, labels=None, title="multiple unstacked bar plot", **kwargs):
+        """Given a list of dataframes, with identical columns and index, create a clustered stacked bar plot. 
+           labels is a list of the names of the dataframe, used for the legend title is a string for the 
+           title of the plot H is the hatch used for identification of the different dataframe"""
+
+        # preliminaries
+        self.refine_data()
+        self.define_colorblind_color_maps()
+        n_col = len(self.data_df.columns) 
+        
+        matplotlib.rcParams['pdf.fonttype'] = 42
+        plt.rc('axes', titlesize=self.font_size)     # fontsize of the axes title
+        plt.rc('axes', labelsize=self.font_size)     # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=self.font_size)    # fontsize of the tick labels
+        plt.rc('ytick', labelsize=self.font_size)    # fontsize of the tick labels
+        
+        fig, axes = plt.subplots(1, figsize=(15,10))
+        axe = axes
+        if False:
+            axe = self.data_df[["total cost", "cpu node cost", "gpu node cost", "network costs"]].plot(kind="bar",
+                        yerr=self.data_df[["total_err", "cpu_err", "gpu_err", "network_err"]].values.T,
+                        linewidth=2,
+                        stacked=False,
+                        ax=axe,
+                        legend=False,
+                        grid=False,
+                        **kwargs)  # make bar plots
+        xmin=-0.25
+        xmax=2.25
+        bar_width = 0.35
+        x_ticks = [0.18,1,1.82]
+        x_ticks1 = [x_tick-(bar_width*1.5) for x_tick in x_ticks]
+        x_ticks2 = [x_tick-(bar_width*0.5) for x_tick in x_ticks]
+        x_ticks3 = [x_tick+(bar_width*0.5) for x_tick in x_ticks]
+        x_ticks4 = [x_tick+(bar_width*1.5) for x_tick in x_ticks]
+        n_col = len(self.data_df.columns) 
+        if False:
+            axe.bar(
+                x_ticks1,
+                self.data_df.loc[["1GPU","4GPU","8GPU"],"network costs"],
+                yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"network_err"],
+                width=bar_width,
+                color=self.color_maps[0](0),
+                bottom=None)
+            axe.bar(
+                x_ticks2,
+                self.data_df.loc[["1GPU","4GPU","8GPU"],"gpu node cost"],
+                yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"gpu_err"],
+                width=bar_width,
+                color=self.color_maps[0](1),
+                bottom=None)
+            axe.bar(
+                x_ticks3,
+                self.data_df.loc[["1GPU","4GPU","8GPU"],"cpu node cost"],
+                yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"cpu_err"],
+                width=bar_width,
+                color=self.color_maps[0](2),
+                bottom=None)
+            axe.bar(
+                x_ticks4,
+                self.data_df.loc[["1GPU","4GPU","8GPU"],"total cost"],
+                yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"total_err"],
+                width=bar_width,
+                color=self.color_maps[0](3),
+                bottom=None)
+        #import pdb; pdb.set_trace()
+        axe.bar(
+            x_ticks,
+            self.data_df.loc[["1GPU","4GPU","8GPU"],"network costs"],
+            yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"network_err"],
+            width=bar_width,
+            color=self.color_maps[0](0),
+            bottom=None)
+        axe.bar(
+            x_ticks,
+            self.data_df.loc[["1GPU","4GPU","8GPU"],"gpu node cost"],
+            yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"gpu_err"],
+            width=bar_width,
+            color=self.color_maps[0](1),
+            bottom=self.data_df.loc[["1GPU","4GPU","8GPU"],"network costs"])
+        axe.bar(
+            x_ticks,
+            self.data_df.loc[["1GPU","4GPU","8GPU"],"cpu node cost"],
+            yerr=self.data_df.loc[["1GPU","4GPU","8GPU"],"cpu_err"],
+            width=bar_width,
+            color=self.color_maps[0](2),
+            bottom=self.data_df.loc[["1GPU","4GPU","8GPU"],"gpu node cost"]+self.data_df.loc[["1GPU","4GPU","8GPU"],"network costs"])
+
+
+        axe.set_title(self.plot_title)
+        axe.set_ylabel(self.y_label)
+        axe.set_xlabel('Number of GPUs')
+        axe.set_xticks(x_ticks)
+        axe.set_xlim(xmin,xmax)
+        axe.set_xticklabels(["1 GPU", "4 GPU", "8 GPU"])
+        #h,l = axe.get_legend_handles_labels() # get the handles we want to modify
+        #l1 = axe.legend(h[:n_col], l[:n_col], loc=[.425, 0.75])
+        #axe.add_artist(l1)
+        axe.legend(["Network and Data Costs", "GPU Node Cost", "CPU Node Cost"],
+            prop={'size':self.font_size},
+            loc=[0.30,0.75])
+        plt.savefig(path.join(self.output_folder,self.plot_pdf_name), transparent=True)
+
 
 class OptimalGpuNumberFigure(BaseFigure):
 
@@ -680,17 +829,21 @@ class OptimalGpuNumberFigure(BaseFigure):
 
         # declare data for plotting
         image_size_bits = 8000000 # (bits/image), 1000 pixels x 1000 pixels x 8 bits
-        bits_to_megabits_conversion_factor = 1024*1024 # bits/Mb
+        bits_to_megabits_conversion_factor = 1000*1000 # bits/megabit
         #prediction_speed = [ 0.1, 0.25, 0.5, 1, 2, 5, 10, 100 ] # images/sec
         #prediction_speed = np.logspace(-1,2,num=200) # images/sec
         prediction_speed = np.linspace(0.1,100,num=1000) # images/sec
         #upload_speed = np.logspace(1,3.5,num=50) # [10,~3000], Mb/s 
         upload_speed =  [ 10, 50, 250, 700, 1200, 1800, 2400, 3000 ] # Mb/s 
         #gpu_nums = [ 1, 2, 4, 8, 16 ]
-        all_data = np.zeros( (len(prediction_speed), len(upload_speed)) )
-        for i, rate in enumerate(upload_speed):
-            data = [ round( (rate/x)*(image_size_bits/bits_to_megabits_conversion_factor) - 0.5 ) for x in prediction_speed ]
-            all_data[:,i] = data        
+        all_gpu_nums = np.zeros( (len(prediction_speed), len(upload_speed)) )
+        for i, upload in enumerate(upload_speed):
+            # If I have the math right, the units on right hand side of the following line are
+            # ( (images/sec)/(megabits/sec) ) * ( (bits/image)/(bits/megabit) ) = (images/megabit) * (megabit/image) = NA
+            # which is what we want to see...?
+            gpus = [ round( ( upload/ (prediction*image_size_bits/bits_to_megabits_conversion_factor) ) - 0.5 ) for prediction in prediction_speed ]
+            gpus = [ gpu if gpu >= 1.0 else 1.0 for gpu in gpus ]
+            all_gpu_nums[:,i] = gpus
         
         # plot parameters
         title = "Optimal GPU Numbers for Given Network Speeds and Tensorflow Processing Speeds"
@@ -699,7 +852,7 @@ class OptimalGpuNumberFigure(BaseFigure):
         xmin=0
         xmax=max(prediction_speed)+1
         ymin=0.98
-        ymax=50
+        ymax=8.02
         #ymax=np.max(all_data) + 1
         #x_ticks = [0.5,1,1.5]
         
@@ -715,24 +868,18 @@ class OptimalGpuNumberFigure(BaseFigure):
 
         # plot data
         for i, rate in enumerate(upload_speed):
-            if rate==1:
-                plot_label = str(rate) + " Mb/s"
-            else:
-                plot_label = str(rate) + " Mb/s"
+            plot_label = str(rate) + " Mbps"
             color_index = i % self.color_maps[0].N
             #import pdb; pdb.set_trace()
             axis.plot(
                 prediction_speed,
-                all_data[:,i],
+                all_gpu_nums[:,i],
                 color=self.color_maps[0](color_index),
                 label=plot_label)
         # add legend
         legend_labels = []
         for rate in upload_speed:
-            if rate==1:
-                label = str(rate) + " Mb/s"
-            else:
-                label = str(rate) + " Mb/s"
+            label = str(rate) + " Mbps"
             legend_labels.append(label)
         axis.legend(legend_labels, prop={'size':self.font_size})
         plt.savefig(path.join(self.output_folder,self.plot_pdf_name), transparent=True)

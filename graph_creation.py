@@ -11,7 +11,7 @@ from os import path, getcwd
 
 from graph_scripts import utils
 from graph_scripts.utils import MissingDataError
-from graph_scripts.figures import ImageTimeVsGpuFigure, BulkTimeVsGpuFigure, CostVsGpuFigure, OptimalGpuNumberFigure
+from graph_scripts.figures import ImageTimeVsGpuFigure, BulkTimeVsGpuFigure, CostVsGpuFigure, OptimalGpuNumberFigure, AllCostsVsGpuFigure
 from graph_scripts.data_extractor import DataExtractor
 
 def create_figures():
@@ -41,6 +41,18 @@ def create_empirical_figures(raw_data):
                 logging.error(
                     f"No data for gpu vs time for "
                     f"delay {chosen_delay} and multiple image conditions.")
+        if CREATE_ALL_COSTS_VS_GPU_FIGURE:
+            # num_gpu vs. cost plot
+            img_nums = [10000, 100000, 1000000]
+            all_costs_vs_gpu_figure = AllCostsVsGpuFigure(
+                raw_data, chosen_delay, img_nums, OUTPUT_FOLDER)
+            try:
+                all_costs_vs_gpu_figure.plot()
+                logging.debug(f"Saved {all_costs_vs_gpu_figure.plot_pdf_name}")
+            except MissingDataError:
+                logging.error(
+                    f"No data for gpu vs cost for "
+                    f"delay {chosen_delay} and img_num {chosen_img_num}.")
 
         # create single-image-number graphs
         for chosen_img_num in IMG_NUMS:
@@ -114,7 +126,8 @@ if __name__ == '__main__':
     CREATE_IMAGE_TIME_VS_GPU_FIGURE = False
     CREATE_BULK_TIME_VS_GPU_FIGURE = False
     CREATE_COST_VS_GPU_FIGURE = False
-    CREATE_OPTIMAL_GPU_NUMBER_FIGURE = True
+    CREATE_All_COSTS_VS_GPU_FIGURE = True
+    CREATE_OPTIMAL_GPU_NUMBER_FIGURE = False
 
     # configure logging
     LOGGER = logging.getLogger(__name__)
