@@ -1,6 +1,11 @@
 # data_extractor.py
+""" This module extracts all the Deepcell Kiosk benchmarking run data from the JSON files in a given
+    folder.
+"""
+
 import re
 import json
+import logging
 from os.path import isfile
 from os import path, listdir
 
@@ -9,8 +14,15 @@ from numpy.core._exceptions import UFuncTypeError
 from .utils import NoGpuError
 
 class DataExtractor():
+    """ This class extracts all the Deepcell Kiosk benchmarking run data from the json files in a
+        given folder.
 
-    def __init__(self, data_folder):
+        Arguments:
+        data_folder - folder containing benchmarking run reuslts in JSON format (string)
+        logger_name - the name of the class whose logger is being created (string)
+    """
+
+    def __init__(self, data_folder, logger_name="DataExtractor"):
         self.data_folder = data_folder
         self.aggregated_data = []
         # zip files where all images succeeded
@@ -24,8 +36,40 @@ class DataExtractor():
             'start_delay',
             'num_jobs',
             'time_elapsed']
+        self.logger = self.configure_logging(logger_name)
+
+    @staticmethod
+    def configure_logging(logger_name):
+        """This function configures logging for the whole instance.
+
+            Arguments:
+            logger_name - the name of the class whose logger is being created (string)
+
+            Outputs:
+            class_logger - the place to write logs to (Logger?)
+        """
+
+        class_logger = logging.getLogger(logger_name)
+        class_logger.setLevel(logging.DEBUG)
+        sh = logging.StreamHandler()
+        sh.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        sh.setFormatter(formatter)
+        class_logger.addHandler(sh)
+        class_logger.propagate = False
+        fh = logging.FileHandler("figure_creation.log")
+        fh.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        class_logger.addHandler(fh)
+        return class_logger
 
     def extract_data(self):
+        """ This method gets a list of JSON files from self.data_folder and passes them one-by-one
+            to self.handle_individual_files and appends the returned data to a list,
+            self.aggreagted_data.
+        """
+
         # extract data from json files
         data_files = [
             f for f
@@ -36,10 +80,20 @@ class DataExtractor():
             file_path = path.join(self.data_folder, data_file)
             data_to_keep = self.handle_individual_files(data_file, file_path)
             self.aggregated_data.append(data_to_keep)
-        print(f'Total successes: {self.total_successes}')
-        print(f'Total failures: {self.total_failures}')
+        self.logger.info(f'Total successes: {self.total_successes}')
+        self.logger.info(f'Total failures: {self.total_failures}')
 
     def handle_individual_files(self, data_file, file_path):
+        """ This method takes in a JSON filepath and extracts a plethora of intersting data fields
+            from the file.
+
+            Arguments:
+            data_file - simple filename of file (string)
+            file_path - absolute path of file on disk (string) [stuff + data_file]
+
+            Outputs:
+            data_to_keep - various cost and runtime data extracted from file
+        """
         with open(file_path, "r") as open_file:
             json_data = json.load(open_file)
             data_to_keep = {}
@@ -82,7 +136,7 @@ class DataExtractor():
             seconds_in_a_minute = 60
             for i in range(json_data['num_jobs']):
                 try:
-                    # TODO: potentially pad all data?
+                    # TODO: preemptively pad all data?
                     # gather raw times
                     total_times = json_data['job_data'][i]['total_time']
                     upload_times = json_data['job_data'][i]['upload_time']
@@ -119,7 +173,8 @@ class DataExtractor():
                     # register a success
                     self.total_successes += 1
                 except TypeError:
-                    print("Error.")
+                    self.logger.error(f"There was some sort of error with job number {i}" +
+                                      f" in data file {data_file}.")
                     self.total_failures += 1
             data_to_keep['average_image_time'] = \
                     data_to_keep['total_image_time']/self.total_successes
@@ -143,6 +198,19 @@ class DataExtractor():
 
     @staticmethod
     def handle_network_time_computation(all_upload_times, all_download_times):
+        """ This method handles the details of computing the 'network time', which is determined
+            by a formula involving both the upload and download times during benchmarking. For now,
+            we're just using 2*upload + 2*download, but we could make this a little more precise.
+            I think this method gets called with image-level data for all images in all jobs in a
+            run all at once, but I'm not certain.
+
+            Arguments:
+            all_upload_times - the upload times observed for each image in the run
+            all_download_times - the download times observed for each image in the run
+
+            Outputs:
+            all_network_times - the 'network times' for each image in the run
+        """
         upload_download_multiplier = 2
         # We need to wrap all this in a while loop because we might
         # hit multiple exceptions in series.
@@ -175,9 +243,10 @@ class DataExtractor():
                         all_download_times = np.append(all_download_times, download_average)
                 else:
                     raise ValueError
-            # TODO:
-            # We had some entries that were text???
-            # Very weird and I want to make sure this wasn't an issue.
+            # TODO: In the middle of a data series, we'll sometimes get four consecutive entries
+            # that read as ["N", "o", "n", "e"]. All four of these likely represent one missing
+            # numeric data point. Right now, all four are being replaced with average value data,
+            # but ideally they would all be consolidated into one numeric data point.
             except UFuncTypeError:
                 for i, upload in enumerate(all_upload_times):
                     if isinstance(upload, str):
@@ -193,11 +262,23 @@ class DataExtractor():
                 for i, download in enumerate(all_download_times):
                     if np.isnan(download):
                         all_download_times[i] = download_mean
-                print("ufunktypeerror!!!")
+                # TODO: pass in a file name and a job number to this function, to improve error text
+                self.logger.error("We hit a ufunktypeerror!!!")
         return all_network_times
 
     @staticmethod
     def extra_network_costs(img_num, run_duration_minutes):
+        """ This method computes network and storage costs during the run due to Google Cloud
+            storage charges.
+
+            Arguments:
+            img_num - number of images uploaded in the current run
+            run_duration_minutes - time from beginning to end of run
+
+            Outputs:
+            total_fees - total fees imposed by Google Cloud over the life of the run
+        """
+
         total_storage_gb = 1.5*img_num/1000
         run_duration_months = run_duration_minutes/24/30
 
