@@ -11,7 +11,7 @@ from os import path, listdir
 
 import numpy as np
 from numpy.core._exceptions import UFuncTypeError
-from .utils import NoGpuError
+from utils import NoGpuError
 
 class DataExtractor():
     """ This class extracts all the Deepcell Kiosk benchmarking run data from the json files in a

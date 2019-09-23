@@ -15,7 +15,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
-from .utils import MissingDataError
+from utils import MissingDataError
 
 
 class BaseFigure(object):
