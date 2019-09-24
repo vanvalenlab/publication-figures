@@ -1,3 +1,6 @@
+# TODO: Improve formatting of HTLM docs (CSS?).
+# TODO: Improve use of reST formatting in docstrings to make HTML docs more legible.
+
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -12,15 +15,13 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('..'))
-sys.path.insert(0, os.path.abspath('../graph_scripts/'))
+sys.path.insert(0, os.path.abspath('../figure_generation/'))
 
 
 # -- Project information -----------------------------------------------------
 
 project = 'Deepcell Kiosk Figure Generation'
-copyright = '2019, Van Valen Lab & Dylan Bannon, Caltech'
+copyright = '2019, Dylan Bannon, Van Valen Lab, Caltech'
 author = 'Dylan Bannon'
 
 # The full version, including alpha/beta/rc tags
@@ -33,7 +34,9 @@ release = '1.0.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc'
+    'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.todo'
 ]
 
 # Add any paths that contain templates here, relative to this directory.

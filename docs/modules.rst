@@ -1,8 +1,7 @@
-figure-generation
+figure_generation
 =================
 
 .. toctree::
    :maxdepth: 4
 
-   conf
-   graph_creation
+   figure_generation
