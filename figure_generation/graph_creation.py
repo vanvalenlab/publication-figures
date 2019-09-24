@@ -47,7 +47,11 @@ def create_empirical_figures(raw_data):
         figures.
 
         Args:
-        raw_data ([{}]): data extracted from JSON benchmarking files
+            raw_data ([{}]): data extracted from JSON benchmarking files
+
+        Raises:
+            TypeError: If contents of [IMG_NUMS] are not of the expected lengths. The logic here is
+                that we're only expecting values of 10,000; 100,000; or 1,000,000 right now.
 
     """
     for chosen_delay in DELAYS:

@@ -249,6 +249,10 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
         """ Starting with all dat afrom all runs, pare data down to runs from the appropriate
             (delay)x(image number) conditions.
 
+            Raises:
+                MissingDataError: If we don't have any data for a chosen combination of upload
+                    delay and image number conditions, then we raise this exception.
+
         """
         # only choose relevant runs
         refined_data = []
@@ -524,6 +528,10 @@ class BulkTimeVsGpuFigure(BaseEmpiricalFigure):
         """ Starting with all dat afrom all runs, pare data down to runs from the appropriate
             (delay) conditions.
 
+            Raises:
+                MissingDataError: If we don't have any data for a chosen combination of upload
+                    delay and image number conditions, then we raise this exception.
+
         """
         # only choose relevant runs
         refined_data = []
@@ -693,6 +701,10 @@ class CostVsGpuFigure(BaseEmpiricalFigure):
         """ Starting with all data from all runs, pare data down to runs from the appropriate
             (delay) conditions.
 
+            Raises:
+                MissingDataError: If we don't have any data for a chosen combination of upload
+                    delay and image number conditions, then we raise this exception.
+
         """
         # only choose relevant runs
         refined_data = []
@@ -850,6 +862,10 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
     def refine_data(self):
         """ Starting with all data from all runs, pare data down to runs from the appropriate
             (delay) conditions.
+
+            Raises:
+                MissingDataError: If we don't have any data for a chosen delay, then we raise this
+                    exception.
 
         """
         # only choose relevant runs

@@ -101,6 +101,12 @@ class DataExtractor():
             Returns:
                 data_to_keep (dict): various cost and runtime data extracted from file
 
+            Raises:
+                NoGpuError: The string "GPU" wasn't found in the passed filename (data_file). This
+                    either means this isn't a benchmarking run, or it is a benchmarking run done on
+                    a CPU. Either way, we can't plot this data with the code currently in
+                    figures.py.
+
         """
         with open(file_path, "r") as open_file:
             json_data = json.load(open_file)
@@ -215,8 +221,14 @@ class DataExtractor():
                 all_upload_times (ndarray): the upload times observed for each image in the run
                 all_download_times (ndarray): the download times observed for each image in the run
 
-            Outputs:
+            Returns:
                 all_network_times (ndarray): the 'network times' for each image in the run
+
+            Raises:
+                ValueError: If the np.add or np.multiply commands in the computation of
+                    all_network_times raise a ValueError, and it isn't due to length mismatches
+                    between all_upload_times and all_download_times, then we reraise the
+                    ValueError.
 
         """
         upload_download_multiplier = 2
@@ -285,8 +297,8 @@ class DataExtractor():
 
             Returns:
                 total_fees (float): total fees imposed by Google Cloud over the life of the run
-        """
 
+        """
         total_storage_gb = 1.5*img_num/1000
         run_duration_months = run_duration_minutes/24/30
 
