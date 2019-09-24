@@ -1,8 +1,8 @@
 # figures.py
 """ The terminal classes in this file are each intended to create a different type of figure.
-    They all inherit from either BaseEmpiricalFigure (for figures relying on benchmarking data)
-    or BaseFigure (for figures explaining some theoretical principle). It's worth noting that the
-    BaseEmpiricalFigure class inherits from the BaseFigure class.
+    They all inherit from either **BaseEmpiricalFigure** (for figures relying on benchmarking data)
+    or **BaseFigure** (for figures explaining some theoretical principle). It's worth noting that the
+    **BaseEmpiricalFigure** class inherits from the **BaseFigure** class.
 
 """
 
