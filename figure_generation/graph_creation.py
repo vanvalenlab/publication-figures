@@ -12,6 +12,29 @@ so that the parameters can be passed in via the command line.
 Until argparse functionality is implemented, call this file at the command line with, simply:
 python3 graph_creation.py
 
+Attributes:
+    INPUT_FOLDER (str, "new_data"): folder containing raw benchmarking JSON files
+    OUTPUT_FOLDER (str, "outputs"): path, absolute or relative, of folder to place output figures
+        in; does not necessarily need to exist yet
+    DELAYS ([float], [0.5, 5.0]): examine "start_delay" field in raw benchmarking JSON files and
+        only keep those with these delays; only runs with these delays will be included in plots
+    IMG_NUMS ([int], [10000, 100000, 1000000]): only runs with these numbers of images will be
+        included in plots
+    CREATE_IMAGE_TIME_VS_GPU_FIGURE (bool, True): create ImageTimeVsGpuFigure(s); see figures.py for
+        details on this figure
+    CREATE_BULK_TIME_VS_GPU_FIGURE (bool, True): create BulkTimeVsGpu(s); see figures.py for details
+        on this figure
+    CREATE_COST_VS_GPU_FIGURE (bool, True): create CostVsGpuFigure(s); see figures.py for details on
+        this figure
+    CREATE_ALL_COSTS_VS_GPU_FIGURE (bool, True): create AllCostsVsGpuFigure(s); see figures.py for
+        details on this figure
+    CREATE_OPTIMAL_GPU_NUMBER_FIGURE (bool, True): create OptimalGpuNumberFigure; see figures.py for
+        details on this figure
+    LOGGER (logging.getLogger(), logging.getLogger("GraphCreationEntrypoint")): the default logger
+        for the entire module
+    BASE_PATH (str, getcwd()): base path for converting relative INPUT_FOLDER and OUTPUT_FOLDER
+        paths into absolute paths
+
 Todo:
     * add argparse functionality, so users can pass in values via command line
 
@@ -49,12 +72,12 @@ def create_empirical_figures(raw_data):
     """ This method takes in the raw_data extracted from JSON files and creates all data-based
         figures.
 
-        Args:
-            raw_data ([{}]): data extracted from JSON benchmarking files
+    Args:
+        raw_data ([{}]): data extracted from JSON benchmarking files
 
-        Raises:
-            TypeError: If contents of [IMG_NUMS] are not of the expected lengths. The logic here is
-                that we're only expecting values of 10,000; 100,000; or 1,000,000 right now.
+    Raises:
+        TypeError: If contents of [IMG_NUMS] are not of the expected lengths. The logic here is
+            that we're only expecting values of 10,000; 100,000; or 1,000,000 right now.
 
     """
     for chosen_delay in DELAYS:
@@ -132,12 +155,12 @@ def create_theoretical_figures():
 def read_in_data():
     """ This method extracts benchmarking data from all JSON files in INPUT_FOLDER.
 
-        Args:
-        INPUT_FOLDER (str; global): the folder containing the JSON benchmarking results files
+    Args:
+    INPUT_FOLDER (str; global): the folder containing the JSON benchmarking results files
 
-        Returns:
-        data_extractor.aggregated_data ([{}]): all JSON data, extracted as a list of dicts,
-                with data cleaned
+    Returns:
+    data_extractor.aggregated_data ([{}]): all JSON data, extracted as a list of dicts,
+            with data cleaned
 
     """
     # extract data from json files and format it
@@ -166,7 +189,6 @@ if __name__ == '__main__':
     # configuration parameters
     INPUT_FOLDER = "new_data"
     OUTPUT_FOLDER = "outputs"
-    #DELAYS = [5.0]
     DELAYS = [0.5, 5.0]
     IMG_NUMS = [10000, 100000, 1000000]
     CREATE_IMAGE_TIME_VS_GPU_FIGURE = True

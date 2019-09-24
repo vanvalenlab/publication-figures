@@ -24,9 +24,25 @@ class DataExtractor():
     """ This class extracts all the Deepcell Kiosk benchmarking run data from the json files in a
         given folder.
 
-        Args:
-            data_folder (str): folder containing benchmarking run reuslts in JSON format
-            logger_name (str): the name of the class whose logger is being created
+    Args:
+        data_folder (str): folder containing benchmarking run reuslts in JSON format
+        logger_name (str, optional): the name of the class whose logger is being created
+
+    Attributes:
+        data_folder (str): absolute path to folder containing raw benchmarking data
+        aggregated_data ([]): collected data from all benchmarking runs in data_folder
+        total_successes (int): count of benchmarking files processed without error; intiialized to
+            zero
+        total_failures (int): count of benchmarking files processed with errors; intiialized to
+            zero
+        data_keys ([str]): partial list of dictionary keys needed from benchmarking files to compute
+            quantities of interest for benchmarking runs; currently set to
+            ['cpu_node_cost', 'gpu_node_cost', 'total_node_and_networking_costs', 'start_delay',
+            'num_jobs', 'time_elapsed'] and not user-configurable.
+        logger (logging.getLogger()): logger retrieved using logger_name
+
+    Todo:
+        * clean up the usage of data_keys: either make it more comprehensive, or do away with it
 
     """
     def __init__(self, data_folder, logger_name="DataExtractor"):
@@ -49,11 +65,11 @@ class DataExtractor():
     def configure_logging(logger_name):
         """This function configures logging for the whole instance.
 
-            Args:
-                logger_name (str): the name of the class whose logger is being created
+        Args:
+            logger_name (str): the name of the class whose logger is being created
 
-            Returns:
-                Logger corresping to given logger_name
+        Returns:
+            Logger corresping to given logger_name
 
         """
         class_logger = logging.getLogger(logger_name)
@@ -94,21 +110,21 @@ class DataExtractor():
         """ This method takes in a JSON filepath and extracts a plethora of intersting data fields
             from the file.
 
-            Args:
-                data_file (str): simple filename of file
-                file_path (str): absolute path of file on disk
+        Args:
+            data_file (str): simple filename of file
+            file_path (str): absolute path of file on disk
 
-            Returns:
-                data_to_keep (dict): various cost and runtime data extracted from file
+        Returns:
+            data_to_keep (dict): various cost and runtime data extracted from file
 
-            Raises:
-                NoGpuError: The string "GPU" wasn't found in the passed filename (data_file). This
-                    either means this isn't a benchmarking run, or it is a benchmarking run done on
-                    a CPU. Either way, we can't plot this data with the code currently in
-                    figures.py.
+        Raises:
+            NoGpuError: The string "GPU" wasn't found in the passed filename (data_file). This
+                either means this isn't a benchmarking run, or it is a benchmarking run done on
+                a CPU. Either way, we can't plot this data with the code currently in
+                figures.py.
 
-            Todo:
-                * preemptively pad all data in `for i in range(json_data['num_jobs'])` block?
+        Todo:
+            * preemptively pad all data in `for i in range(json_data['num_jobs'])` block?
 
         """
         with open(file_path, "r") as open_file:
@@ -219,27 +235,27 @@ class DataExtractor():
             I think this method gets called with image-level data for all images in all jobs in a
             run all at once, but I'm not certain.
 
-            Args:
-                all_upload_times (ndarray): the upload times observed for each image in the run
-                all_download_times (ndarray): the download times observed for each image in the run
+        Args:
+            all_upload_times (ndarray): the upload times observed for each image in the run
+            all_download_times (ndarray): the download times observed for each image in the run
 
-            Returns:
-                all_network_times (ndarray): the 'network times' for each image in the run
+        Returns:
+            all_network_times (ndarray): the 'network times' for each image in the run
 
-            Raises:
-                ValueError: If the np.add or np.multiply commands in the computation of
-                    all_network_times raise a ValueError, and it isn't due to length mismatches
-                    between all_upload_times and all_download_times, then we reraise the
-                    ValueError.
+        Raises:
+            ValueError: If the np.add or np.multiply commands in the computation of
+                all_network_times raise a ValueError, and it isn't due to length mismatches
+                between all_upload_times and all_download_times, then we reraise the
+                ValueError.
 
-            Todo:
-                * In the middle of a data series, we'll sometimes get four consecutive entries that
-                    read as ["N", "o", "n", "e"]. All four of these likely represent one missing
-                    numeric data point. Right now, all four are being replaced with average value
-                    data, but ideally they would all be consolidated into one numeric data point.
-                    Further, this irregularity may be the only common cause of the UFuncTypeError.
-                *  Pass in a file name and a job number to this function, to improve error text in
-                    the `self.logger.error("We hit a ufunktypeerror!!!")` line.
+        Todo:
+            * In the middle of a data series, we'll sometimes get four consecutive entries that
+                read as ["N", "o", "n", "e"]. All four of these likely represent one missing
+                numeric data point. Right now, all four are being replaced with average value
+                data, but ideally they would all be consolidated into one numeric data point.
+                Further, this irregularity may be the only common cause of the UFuncTypeError.
+            *  Pass in a file name and a job number to this function, to improve error text in
+                the `self.logger.error("We hit a ufunktypeerror!!!")` line.
 
         """
         upload_download_multiplier = 2
@@ -297,12 +313,12 @@ class DataExtractor():
         """ This method computes network and storage costs during the run due to Google Cloud
             storage charges.
 
-            Args:
-                img_num (int): number of images uploaded in the current run
-                run_duration_minutes (float): time from beginning to end of run
+        Args:
+            img_num (int): number of images uploaded in the current run
+            run_duration_minutes (float): time from beginning to end of run
 
-            Returns:
-                total_fees (float): total fees imposed by Google Cloud over the life of the run
+        Returns:
+            total_fees (float): total fees imposed by Google Cloud over the life of the run
 
         """
         total_storage_gb = 1.5*img_num/1000

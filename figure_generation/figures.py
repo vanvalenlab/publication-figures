@@ -27,8 +27,17 @@ class BaseFigure(object):
     """ This is the base class for all figures.
 
     Args:
-        output_folder (str): The folder into which the figures should be written
-        logger_name (str): the name of the class whose logger is being created
+        output_folder (str, optional): The folder into which the figures should be written
+        logger_name (str, optional): the name of the class whose logger is being created
+
+    Attributes:
+        font_size (int): size of font to pass to matplotlib for plotting
+        output_folder (str): path, local or absolute, of folder to place figures in; must already
+            exist
+        color_maps ([matplotlib.colors.LinearSegmentedColorMap]): a list of color maps, each
+            containing a uniquely-ordered list of all the color in the same blind-friendly color
+            pallette
+        logger (logging.getLogger()): logger retrieved using the logger_name arg
 
     """
     def __init__(self, output_folder="outputs", logger_name="BaseFigure"):
@@ -43,10 +52,10 @@ class BaseFigure(object):
             people who are red-green color blind. This color map originally comes from
             Bang Wong, Nature Methods, volume 8, page 441 (2011)
 
-            Returns:
-                [matplotlib.colors.LinearSegmentedColorMap]: a list of color maps, each containing
-                    a uniquely-ordered list of all the color in the same blind-friendly color
-                    pallette
+        Returns:
+            [matplotlib.colors.LinearSegmentedColorMap]: a list of color maps, each containing
+                a uniquely-ordered list of all the color in the same blind-friendly color
+                pallette
 
         """
         colors = [(86/255, 180/255, 233/255),
@@ -73,11 +82,11 @@ class BaseFigure(object):
     def configure_logging(logger_name):
         """This function configures logging for the whole instance.
 
-            Args:
-                logger_name (str): the name of the class whose logger is being created
+        Args:
+            logger_name (str): the name of the class whose logger is being created
 
-            Returns:
-                logging.getLogger(): loger retrieved using the given logger_name
+        Returns:
+            logging.getLogger(): logger retrieved using the given logger_name
 
         """
         class_logger = logging.getLogger(logger_name)
@@ -99,16 +108,25 @@ class BaseFigure(object):
 class BaseEmpiricalFigure(BaseFigure):
     """ This is the base figure class for all figures that rely on experimental data.
 
-        Args:
-            raw_data ([{}]): list of dictionaries, each one representing a different
-                benchmarking run
-            chosen_delay (float): the delay used when uploading file for the desired runs.
-                NB: The values used indicate how many seconds our simulated uploading pipeline
-                waited between simulating 100 image zip file uploads. Given that our zip files were
-                ~150Mb each, the delays of 0.5s and 5.0s correspond to ~240Mbps and 2,400Mbps.
-            chosen_img_num (int): the number of images processed in the desired runs
-            output_folder (str): the folder into which the figures should be written
-            logger_name (str): the name of the class whose logger is being created
+    Args:
+        raw_data ([{}]): list of dictionaries, each one representing a different
+            benchmarking run
+        chosen_delay (float): the delay used when uploading file for the desired runs.
+            NB: The values used indicate how many seconds our simulated uploading pipeline
+            waited between simulating 100 image zip file uploads. Given that our zip files were
+            ~150Mb each, the delays of 0.5s and 5.0s correspond to ~240Mbps and 2,400Mbps.
+        chosen_img_num (int): the number of images processed in the desired runs
+        output_folder (str): the folder into which the figures should be written
+        logger_name (str, optional): the name of the class whose logger is being created
+
+    Attributes:
+        raw_data ([{}]): list of dictionaries, each one representing a different benchmarking run
+        chosen_delay (float): the delay used when uploading file for the desired runs.
+            NB: The values used indicate how many seconds our simulated uploading pipeline
+            waited between simulating 100 image zip file uploads. Given that our zip files were
+            ~150Mb each, the delays of 0.5s and 5.0s correspond to ~240Mbps and 2,400Mbps.
+        chosen_img_num (int or [int]): the number of images processed in the desired runs
+        chosen_img_nums (int or [int]): alias for figures using mutliple image numbers
 
     """
     def __init__(self, raw_data, chosen_delay, chosen_img_num, output_folder,
@@ -126,12 +144,12 @@ class BaseEmpiricalFigure(BaseFigure):
             run conditions, we have some hacks in the code to get it to execute on them
             without throwing an exception.
 
-            Args:
-            data_list ([{}]): list of dictionaries, one dictionary for each replicate of the chosen
-                run conditions
+        Args:
+        data_list ([{}]): list of dictionaries, one dictionary for each replicate of the chosen
+            run conditions
 
-            Todo:
-                * this is for symmetric data, but our data is necessarily non-negative
+        Todo:
+            * this is for symmetric data, but our data is necessarily non-negative
 
         """
         means = []
@@ -188,25 +206,43 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
         3) Postprocessing Times for the aggregated data of all runs with a given set of
         (delay)x(image number) conditions.
 
-        Args:
-            raw_data ([{}]): list of dictionaries, each one representing a different
-                benchmarking run
-            chosen_delay (float): the delay used when uploading file for the desired runs. NB: The
-                values used indicate how many seconds our simulated uploading pipeline waited
-                between simulating 100 image zip file uploads. Given that our zip files were ~150Mb
-                each, the delays of 0.5s and 5.0s correspond to ~240Mbps and 2,400Mbps.
-            chosen_img_num (int): the number of images processed in the desired runs
-            pdf_label (str): base of title for the saved figure's PDF file
-            output_folder (str): the folder into which the figures should be written
-            bins_fixed_width_or_number (str): if set to "number", fix the number of bins in a
-                histogram, while letting the widths of the bins vary; if set to "width", fix the
-                widths of the bins, while letting the number vary
-            cut_off_tails (bool): whether or not to cut off most of the length of the long tails of
-                the histograms at a predetermined point
-            logger_name (str): the name of the class whose logger is being created
+    Args:
+        raw_data ([{}]): list of dictionaries, each one representing a different
+            benchmarking run
+        chosen_delay (float): the delay used when uploading file for the desired runs. NB: The
+            values used indicate how many seconds our simulated uploading pipeline waited
+            between simulating 100 image zip file uploads. Given that our zip files were ~150Mb
+            each, the delays of 0.5s and 5.0s correspond to ~240Mbps and 2,400Mbps.
+        chosen_img_num (int): the number of images processed in the desired runs
+        pdf_label (str): base of title for the saved figure's PDF file
+        output_folder (str): the folder into which the figures should be written
+        bins_fixed_width_or_number (str, optional): if set to "number", fix the number of bins in a
+            histogram, while letting the widths of the bins vary; if set to "width", fix the
+            widths of the bins, while letting the number vary
+        cut_off_tails (bool, optional): whether or not to cut off most of the length of the long
+            tails of the histograms at a predetermined point
+        logger_name (str, optional): the name of the class whose logger is being created
 
-        Outputs:
-            [Sick PDF plot.]
+    Attributes:
+        plot_title (str): title, to be used on the top of each saved matplotlib figure
+        plot_pdf_name (str): base filename, used as the output filename after being predended with
+            the appropriate number of GPUs
+        y_label (str): y-axis label for figures; currently set to "Counts" and not
+            user-configurable
+        gpus ([str]): Strings corresponding to the numbers of GPUs used in the runs of current
+            interest. The exact form of the strings reflects the convention used in the benchmarking
+            filenames and, through this class, is propogated to the output file names. Currently set
+            to ["1GPU", "4GPU", "8GPU"] and not user-configurable.
+        fixed_bin_property (str): if set to "number", fix the number of bins in a
+            histogram, while letting the widths of the bins vary; if set to "width", fix the
+            widths of the bins, while letting the number vary
+        cut_off_tails (bool): whether or not to cut off most of the length of the long tails of the
+            histograms at a predetermined point
+        data_df (None, or pandas.DataFrame): initialized to None, but eventually used to store all
+            cleaned and properly formatted data for the figures
+
+    Outputs:
+        [Sick PDF plot.]
 
     """
     def __init__(self, raw_data, chosen_delay, chosen_img_num, pdf_label, output_folder,
@@ -233,8 +269,8 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
             conditions. This is important when dealing with incomplete data series, such as our
             1,000,000 image runs at both 0.5s and 5.0s delay.
 
-            Returns:
-                (bool): "True" if we have data; "False" if not
+        Returns:
+            (bool): "True" if we have data; "False" if not
 
         """
         for i in range(number_of_subplots):
@@ -251,13 +287,13 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
         """ Starting with all dat afrom all runs, pare data down to runs from the appropriate
             (delay)x(image number) conditions.
 
-            Raises:
-                MissingDataError: If we don't have any data for a chosen combination of upload
-                    delay and image number conditions, then we raise this exception.
+        Raises:
+            MissingDataError: If we don't have any data for a chosen combination of upload
+                delay and image number conditions, then we raise this exception.
 
-            Todo:
-                * simplify series padding, which occurs within `for col in range(col_num)` loop
-                    here and in one block in graph_creation.py
+        Todo:
+            * simplify series padding, which occurs within `for col in range(col_num)` loop
+                here and in one block in graph_creation.py
 
         """
         # only choose relevant runs
@@ -355,8 +391,8 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
             three-panel plot of image-level histograms of data transfer times, Tensorflow response
             times, and postprocessing times.
 
-            Outputs:
-                [PDF figure.]
+        Outputs:
+            [PDF figure.]
 
         """
         # pare data from all runs down to just the runs of current interest
@@ -503,19 +539,28 @@ class BulkTimeVsGpuFigure(BaseEmpiricalFigure):
         times for all runs of with a given number of images, with the number of GPUs used in the
         runs being the x-axis.
 
-        Args:
-            raw_data ([{}]): list of dictionaries, each one representing a different
-                benchmarking run
-            chosen_delay (float): the delay used when uploading file for the desired runs. N.B.:
-                The values used indicate how many seconds our simulated uploading pipeline waited
-                between simulating 100 image zip file uploads. Given that our zip files were ~150Mb
-                each, the delays of 0.5s and 5.0s correspond to ~240Mbps and 2,400Mbps.
-            chosen_img_num (int): the number of images processed in the desired runs
-            output_folder (str): the folder into which the figures should be written
-            logger_name (str): the name of the class whose logger is being created
+    Args:
+        raw_data ([{}]): list of dictionaries, each one representing a different
+            benchmarking run
+        chosen_delay (float): the delay used when uploading file for the desired runs. N.B.:
+            The values used indicate how many seconds our simulated uploading pipeline waited
+            between simulating 100 image zip file uploads. Given that our zip files were ~150Mb
+            each, the delays of 0.5s and 5.0s correspond to ~240Mbps and 2,400Mbps.
+        chosen_img_num (int): the number of images processed in the desired runs
+        output_folder (str): the folder into which the figures should be written
+        logger_name (str, optional): the name of the class whose logger is being created
 
-        Outputs:
-            [Sick PDF plot.]
+    Attributes:
+        plot_title (str): title, to be used on the top of the saved matplotlib figure
+        plot_pdf_name (str): output filename
+        y_label (str): y-axis label for the figure; currently set to "Time (min)" and not
+            user-configurable
+        data_df (None, or pandas.DataFrame): initialized to None, but eventually used to store all
+            cleaned and properly formatted data for the figures
+
+    Outputs:
+        [Sick PDF plot.]
+
     """
     def __init__(self, raw_data, chosen_delay, chosen_img_num, output_folder,
                  logger_name="BulktimeVsGpuFigure"):
@@ -533,9 +578,9 @@ class BulkTimeVsGpuFigure(BaseEmpiricalFigure):
         """ Starting with all dat afrom all runs, pare data down to runs from the appropriate
             (delay) conditions.
 
-            Raises:
-                MissingDataError: If we don't have any data for a chosen combination of upload
-                    delay and image number conditions, then we raise this exception.
+        Raises:
+            MissingDataError: If we don't have any data for a chosen combination of upload
+                delay and image number conditions, then we raise this exception.
 
         """
         # only choose relevant runs
@@ -602,8 +647,8 @@ class BulkTimeVsGpuFigure(BaseEmpiricalFigure):
             three-panel plot of image-level histograms of data transfer times, Tensorflow response
             times, and postprocessing times.
 
-            Outputs:
-                [PDF figure.]
+        Outputs:
+            [PDF figure.]
 
         """
         # pare data from all runs down to just the runs of current interest
@@ -674,20 +719,28 @@ class CostVsGpuFigure(BaseEmpiricalFigure):
         with each figure containing all GPU conditions for all runs with a given set of
         (delay)x(image number) conditions.
 
-        Args:
-            raw_data ([{}]): list of dictionaries, each one representing a different
-                benchmarking run
-            chosen_delay (float): The delay used when uploading file for the desired runs. N.B.: The
-                values used indicate how many seconds our simulated uploading pipeline waited
-                between simulating 100 image zip file uploads. Given that our zip files were ~150Mb
-                each, the delays of 0.5s and 5.0s correspond to ~240Mbps and 2,400Mbps.
-            chosen_img_num (int): the number of images processed in the desired runs
-            pdf_label (str): base of title for the saved figure's PDF file
-            output_folder (str): the folder into which the figures should be written
-            logger_name (str): the name of the class whose logger is being created
+    Args:
+        raw_data ([{}]): list of dictionaries, each one representing a different
+            benchmarking run
+        chosen_delay (float): The delay used when uploading file for the desired runs. N.B.: The
+            values used indicate how many seconds our simulated uploading pipeline waited
+            between simulating 100 image zip file uploads. Given that our zip files were ~150Mb
+            each, the delays of 0.5s and 5.0s correspond to ~240Mbps and 2,400Mbps.
+        chosen_img_num (int): the number of images processed in the desired runs
+        pdf_label (str): base of title for the saved figure's PDF file
+        output_folder (str): the folder into which the figures should be written
+        logger_name (str, optional): the name of the class whose logger is being created
 
-        Outputs:
-            [Sick PDF plot.]
+    Attributes:
+        plot_title (str): title, to be used on the top of the saved matplotlib figure
+        plot_pdf_name (str): output filename
+        y_label (str): y-axis label for the figure; currently set to "Cost (USD)" and not
+            user-configurable
+        data_df (None, or pandas.DataFrame): initialized to None, but eventually used to store all
+            cleaned and properly formatted data for the figures
+
+    Outputs:
+        [Sick PDF plot.]
 
     """
     def __init__(self, raw_data, chosen_delay, chosen_img_num, pdf_label, output_folder,
@@ -706,9 +759,9 @@ class CostVsGpuFigure(BaseEmpiricalFigure):
         """ Starting with all data from all runs, pare data down to runs from the appropriate
             (delay) conditions.
 
-            Raises:
-                MissingDataError: If we don't have any data for a chosen combination of upload
-                    delay and image number conditions, then we raise this exception.
+        Raises:
+            MissingDataError: If we don't have any data for a chosen combination of upload
+                delay and image number conditions, then we raise this exception.
 
         """
         # only choose relevant runs
@@ -765,11 +818,11 @@ class CostVsGpuFigure(BaseEmpiricalFigure):
     def plot(self):
         """ This method first calls self.refine_data() for pare the raw data down to only the runs
             of current interest. Then, for each chosen (delay)x(image number) condition, it plots
-            the average of the Networking, GPU node, and Cpu node costs across all runs, separated
-            by GPU nubmer, as a stacked bar plot.
+            the average of the Networking, GPU node, and CPU node costs across all runs, separated
+            by GPU number, as a stacked bar plot.
 
-            Outputs:
-                [PDF figure.]
+        Outputs:
+            [PDF figure.]
 
         """
         # pare data from all runs down to just the runs of current interest
@@ -834,19 +887,27 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
         there is a cluster of bars, one for each image number, with each bar having a stack of
         network costs, gpu node costs, and cpu costs.
 
-        Args:
-            raw_data ([{}]): list of dictionaries, each one representing a different
-                benchmarking run
-            chosen_delay (float): The delay used when uploading file for the desired runs. N.B.:
-                The values used indicate how many seconds our simulated uploading pipeline waited
-                between simulating 100 image zip file uploads. Given that our zip files were ~150Mb
-                each, the delays of 0.5s and 5.0s correspond to ~240Mbps and 2,400Mbps.
-            chosen_img_num (int): the number of images processed in the desired runs
-            output_folder (str): the folder into which the figures should be written
-            logger_name (str): the name of the class whose logger is being created
+    Args:
+        raw_data ([{}]): list of dictionaries, each one representing a different
+            benchmarking run
+        chosen_delay (float): The delay used when uploading file for the desired runs. N.B.:
+            The values used indicate how many seconds our simulated uploading pipeline waited
+            between simulating 100 image zip file uploads. Given that our zip files were ~150Mb
+            each, the delays of 0.5s and 5.0s correspond to ~240Mbps and 2,400Mbps.
+        chosen_img_num (int): the number of images processed in the desired runs
+        output_folder (str): the folder into which the figures should be written
+        logger_name (str, optional): the name of the class whose logger is being created
 
-        Outputs:
-            [Sick PDF plot.]
+    Attributes:
+        plot_title (str): title, to be used on the top of the saved matplotlib figure
+        plot_pdf_name (str): output filename
+        y_label (str): y-axis label for the figure; currently set to "Cost (USD)" and not
+            user-configurable
+        list_of_dfs (None, or [pandas.DataFrame]): initialized to None, but eventually used to
+            store all cleaned and properly formatted data for the figures
+
+    Outputs:
+        [Sick PDF plot.]
 
     """
     def __init__(self, raw_data, chosen_delay, chosen_img_num, output_folder,
@@ -868,9 +929,9 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
         """ Starting with all data from all runs, pare data down to runs from the appropriate
             (delay) conditions.
 
-            Raises:
-                MissingDataError: If we don't have any data for a chosen delay, then we raise this
-                    exception.
+        Raises:
+            MissingDataError: If we don't have any data for a chosen delay, then we raise this
+                exception.
 
         """
         # only choose relevant runs
@@ -937,8 +998,8 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
             as a stacked bar plot. All bars for a given GPU number are clustered together to
             create a single multi-series, side-by-side stacked bar graph.
 
-            Outputs:
-                [PDF figure.]
+        Outputs:
+            [PDF figure.]
 
         """
         # pare data from all runs down to just the runs of current interest
@@ -1039,12 +1100,15 @@ class OptimalGpuNumberFigure(BaseFigure):
         resulting plot has model prediction speed (images/s) on the x-axis and ideal number of GPUs
         on the y-axis. The plotted data are lines representing different upload speeds (Mbps).
 
-        Arguments:
-            output_folder (str): The folder into which the figures should be written.
-            logger_name (str): the name of the class whose logger is being created
+    Arguments:
+        output_folder (str): The folder into which the figures should be written.
+        logger_name (str, optional): the name of the class whose logger is being created
 
-        Outputs:
-            [Sick PDF plot.]
+    Attributes:
+        plot_pdf_name (str): output filename
+
+    Outputs:
+        [Sick PDF plot.]
 
     """
     def __init__(self, output_folder, logger_name="OptimalGpuNumberFigure"):
