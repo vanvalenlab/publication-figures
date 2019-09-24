@@ -16,10 +16,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
-# To handle relative imports gracefully
-if __name__ == "__main__" and __package__ is None:
-    __package__ = "figure_generation"
-
 from .utils import MissingDataError
 
 
@@ -145,8 +141,8 @@ class BaseEmpiricalFigure(BaseFigure):
             without throwing an exception.
 
         Args:
-        data_list ([{}]): list of dictionaries, one dictionary for each replicate of the chosen
-            run conditions
+            data_list ([{}]): list of dictionaries, one dictionary for each replicate of the chosen
+                run conditions
 
         Todo:
             * this is for symmetric data, but our data is necessarily non-negative

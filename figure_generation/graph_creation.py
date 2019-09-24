@@ -156,11 +156,11 @@ def read_in_data():
     """ This method extracts benchmarking data from all JSON files in INPUT_FOLDER.
 
     Args:
-    INPUT_FOLDER (str; global): the folder containing the JSON benchmarking results files
+        INPUT_FOLDER (str; global): the folder containing the JSON benchmarking results files
 
     Returns:
-    data_extractor.aggregated_data ([{}]): all JSON data, extracted as a list of dicts,
-            with data cleaned
+        data_extractor.aggregated_data ([{}]): all JSON data, extracted as a list of dicts, with
+            data cleaned
 
     """
     # extract data from json files and format it
