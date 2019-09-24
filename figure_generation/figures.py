@@ -119,7 +119,6 @@ class BaseEmpiricalFigure(BaseFigure):
         self.chosen_img_num = chosen_img_num
         self.chosen_img_nums = self.chosen_img_num # alias for figures using multiple image numbers
 
-    # TODO: this is for symmetric data, but our data is necessarily non-negative
     @staticmethod
     def format_data_for_error_plotting(data_lists):
         """ This method is used to compute error bars for plots. It's only relevant for run
@@ -130,6 +129,9 @@ class BaseEmpiricalFigure(BaseFigure):
             Args:
             data_list ([{}]): list of dictionaries, one dictionary for each replicate of the chosen
                 run conditions
+
+            Todo:
+                * this is for symmetric data, but our data is necessarily non-negative
 
         """
         means = []
@@ -253,6 +255,10 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
                 MissingDataError: If we don't have any data for a chosen combination of upload
                     delay and image number conditions, then we raise this exception.
 
+            Todo:
+                * simplify series padding, which occurs within `for col in range(col_num)` loop
+                    here and in one block in graph_creation.py
+
         """
         # only choose relevant runs
         refined_data = []
@@ -290,7 +296,6 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
         row_num = max(variable_lengths)*replicates
         col_num = len(gpu_nums)*len(variables_of_interest)
 
-        # TODO: simplify series padding, which occurs here and in one block in graph_creation.py
         # create DataFrame of predetermined size from variables of interest in relevant runs
         data_array = np.zeros((row_num, col_num))
         for col in range(col_num):

@@ -107,6 +107,9 @@ class DataExtractor():
                     a CPU. Either way, we can't plot this data with the code currently in
                     figures.py.
 
+            Todo:
+                * preemptively pad all data in `for i in range(json_data['num_jobs'])` block?
+
         """
         with open(file_path, "r") as open_file:
             json_data = json.load(open_file)
@@ -150,7 +153,6 @@ class DataExtractor():
             seconds_in_a_minute = 60
             for i in range(json_data['num_jobs']):
                 try:
-                    # TODO: preemptively pad all data?
                     # gather raw times
                     total_times = json_data['job_data'][i]['total_time']
                     upload_times = json_data['job_data'][i]['upload_time']
@@ -230,6 +232,15 @@ class DataExtractor():
                     between all_upload_times and all_download_times, then we reraise the
                     ValueError.
 
+            Todo:
+                * In the middle of a data series, we'll sometimes get four consecutive entries that
+                    read as ["N", "o", "n", "e"]. All four of these likely represent one missing
+                    numeric data point. Right now, all four are being replaced with average value
+                    data, but ideally they would all be consolidated into one numeric data point.
+                    Further, this irregularity may be the only common cause of the UFuncTypeError.
+                *  Pass in a file name and a job number to this function, to improve error text in
+                    the `self.logger.error("We hit a ufunktypeerror!!!")` line.
+
         """
         upload_download_multiplier = 2
         # We need to wrap all this in a while loop because we might
@@ -263,10 +274,6 @@ class DataExtractor():
                         all_download_times = np.append(all_download_times, download_average)
                 else:
                     raise ValueError
-            # TODO: In the middle of a data series, we'll sometimes get four consecutive entries
-            # that read as ["N", "o", "n", "e"]. All four of these likely represent one missing
-            # numeric data point. Right now, all four are being replaced with average value data,
-            # but ideally they would all be consolidated into one numeric data point.
             except UFuncTypeError:
                 for i, upload in enumerate(all_upload_times):
                     if isinstance(upload, str):
@@ -282,7 +289,6 @@ class DataExtractor():
                 for i, download in enumerate(all_download_times):
                     if np.isnan(download):
                         all_download_times[i] = download_mean
-                # TODO: pass in a file name and a job number to this function, to improve error text
                 self.logger.error("We hit a ufunktypeerror!!!")
         return all_network_times
 

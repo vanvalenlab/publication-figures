@@ -12,6 +12,9 @@ so that the parameters can be passed in via the command line.
 Until argparse functionality is implemented, call this file at the command line with, simply:
 python3 graph_creation.py
 
+Todo:
+    * add argparse functionality, so users can pass in values via command line
+
 """
 
 
@@ -160,8 +163,6 @@ def configure_logging():
 
 
 if __name__ == '__main__':
-    #TODO: add argparse functionality, so users can pass in values via command line
-
     # configuration parameters
     INPUT_FOLDER = "new_data"
     OUTPUT_FOLDER = "outputs"
