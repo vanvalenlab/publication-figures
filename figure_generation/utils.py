@@ -7,22 +7,20 @@ if __name__ == "__main__" and __package__ is None:
     __package__ = "figure_generation"
 
 
-# custom execption for a failing regex
+# custom exception for a failing regex
 class NoGpuError(Exception):
     """ This error is raised when a run is done without GPUs (meaning it uses only CPUs for
         Tensorflow predictions, which is, in theory, possible).
+
     """
 
-    pass
-
-# custom execption for missing data
+# custom exception for missing data
 class MissingDataError(Exception):
     """ This exception is raised when some ...Figure class tries to pare down self.raw_data in such
         a way that it removes all data and is left with nothing that meets its criteria. It
         indicates that we're trying to graph data that we don't have.
-    """
 
-    pass
+    """
 
 # https://stackoverflow.com/questions/3229419/how-to-pretty-print-nested-dictionaries
 def pretty(json_input, indent=0):

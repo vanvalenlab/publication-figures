@@ -14,12 +14,13 @@ python3 graph_creation.py
 
 """
 
-# To handle relative imports gracefully
-if __name__ == "__main__" and __package__ is None:
-    __package__ = "figure_generation"
 
 import logging
 from os import path, getcwd, mkdir
+
+# To handle relative imports gracefully
+if __name__ == "__main__" and __package__ is None:
+    __package__ = "figure_generation"
 
 from .utils import MissingDataError
 from .figures import ImageTimeVsGpuFigure, BulkTimeVsGpuFigure, CostVsGpuFigure, \
@@ -177,14 +178,14 @@ if __name__ == '__main__':
     # If a folder starts with a slash, see if it exsits, and make it, if not.
     # If a folder doesn't start with a slash, see if it exists in the current directory.
     # If not, see if it exists in the parent directory. If not, create it in the parent directory.
-    base_path = getcwd()
+    BASE_PATH = getcwd()
     if INPUT_FOLDER[0] != "/":
-        INPUT_FOLDER = path.join(base_path, INPUT_FOLDER)
+        INPUT_FOLDER = path.join(BASE_PATH, INPUT_FOLDER)
         try:
             assert path.isdir(INPUT_FOLDER)
         except AssertionError:
-            base_path = '/'.join(base_path.split('/')[:-1])
-            INPUT_FOLDER = path.join(base_path, INPUT_FOLDER.split('/')[-1])
+            BASE_PATH = '/'.join(BASE_PATH.split('/')[:-1])
+            INPUT_FOLDER = path.join(BASE_PATH, INPUT_FOLDER.split('/')[-1])
             try:
                 assert path.isdir(INPUT_FOLDER)
             except AssertionError:
@@ -193,15 +194,15 @@ if __name__ == '__main__':
         try:
             assert path.isdir(INPUT_FOLDER)
         except AssertionError:
-            mkdir(INPUT_FOLDER) 
-    base_path = getcwd()
+            mkdir(INPUT_FOLDER)
+    BASE_PATH = getcwd()
     if OUTPUT_FOLDER[0] != "/":
-        OUTPUT_FOLDER = path.join(base_path, OUTPUT_FOLDER)
+        OUTPUT_FOLDER = path.join(BASE_PATH, OUTPUT_FOLDER)
         try:
             assert path.isdir(OUTPUT_FOLDER)
         except AssertionError:
-            base_path = '/'.join(base_path.split('/')[:-1])
-            OUTPUT_FOLDER = path.join(base_path, OUTPUT_FOLDER.split('/')[-1])
+            BASE_PATH = '/'.join(BASE_PATH.split('/')[:-1])
+            OUTPUT_FOLDER = path.join(BASE_PATH, OUTPUT_FOLDER.split('/')[-1])
             try:
                 assert path.isdir(OUTPUT_FOLDER)
             except AssertionError:
@@ -210,7 +211,7 @@ if __name__ == '__main__':
         try:
             assert path.isdir(OUTPUT_FOLDER)
         except AssertionError:
-            mkdir(OUTPUT_FOLDER) 
+            mkdir(OUTPUT_FOLDER)
     LOGGER.debug(f"Input directory: {INPUT_FOLDER}, Output directory: {OUTPUT_FOLDER}")
 
     # create figures

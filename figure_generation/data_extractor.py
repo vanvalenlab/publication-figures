@@ -4,10 +4,6 @@
 """
 
 
-# To handle relative imports gracefully
-if __name__ == "__main__" and __package__ is None:
-    __package__ = "figure_generation"
-
 import re
 import json
 import logging
@@ -16,6 +12,11 @@ from os import path, listdir
 
 import numpy as np
 from numpy.core._exceptions import UFuncTypeError
+
+# To handle relative imports gracefully
+if __name__ == "__main__" and __package__ is None:
+    __package__ = "figure_generation"
+
 from .utils import NoGpuError
 
 

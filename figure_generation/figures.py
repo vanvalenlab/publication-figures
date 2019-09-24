@@ -7,10 +7,6 @@
 """
 
 
-# To handle relative imports gracefully
-if __name__ == "__main__" and __package__ is None:
-    __package__ = "figure_generation"
-
 import logging
 from os import path
 
@@ -19,6 +15,10 @@ import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+
+# To handle relative imports gracefully
+if __name__ == "__main__" and __package__ is None:
+    __package__ = "figure_generation"
 
 from .utils import MissingDataError
 
@@ -662,7 +662,8 @@ class CostVsGpuFigure(BaseEmpiricalFigure):
         (delay)x(image number) conditions.
 
         Args:
-            raw_data ([{}]): list of dictionaries, each one representing a different benchmarking run
+            raw_data ([{}]): list of dictionaries, each one representing a different
+                benchmarking run
             chosen_delay (float): The delay used when uploading file for the desired runs. N.B.: The
                 values used indicate how many seconds our simulated uploading pipeline waited
                 between simulating 100 image zip file uploads. Given that our zip files were ~150Mb
@@ -817,7 +818,8 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
         network costs, gpu node costs, and cpu costs.
 
         Args:
-            raw_data ([{}]): list of dictionaries, each one representing a different benchmarking run
+            raw_data ([{}]): list of dictionaries, each one representing a different
+                benchmarking run
             chosen_delay (float): The delay used when uploading file for the desired runs. N.B.:
                 The values used indicate how many seconds our simulated uploading pipeline waited
                 between simulating 100 image zip file uploads. Given that our zip files were ~150Mb
