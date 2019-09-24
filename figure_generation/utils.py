@@ -2,6 +2,11 @@
 """ Odds and ends that might be useful in other files."""
 
 
+# To handle relative imports gracefully
+if __name__ == "__main__" and __package__ is None:
+    __package__ = "figure_generation"
+
+
 # custom execption for a failing regex
 class NoGpuError(Exception):
     """ This error is raised when a run is done without GPUs (meaning it uses only CPUs for
