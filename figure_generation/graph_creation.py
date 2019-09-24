@@ -11,24 +11,29 @@ so that the parameters can be passed in via the command line.
 
 Until argparse functionality is implemented, call this file at the command line with, simply:
 python3 graph_creation.py
+
 """
 
+# To handle relative imports gracefully
+if __name__ == "__main__" and __package__ is None:
+    __package__ = "figure_generation"
 
 import logging
-from os import path, getcwd
+from os import path, getcwd, mkdir
 
-from graph_scripts.utils import MissingDataError
-from graph_scripts.figures import ImageTimeVsGpuFigure, BulkTimeVsGpuFigure, CostVsGpuFigure, \
+from .utils import MissingDataError
+from .figures import ImageTimeVsGpuFigure, BulkTimeVsGpuFigure, CostVsGpuFigure, \
                                   OptimalGpuNumberFigure, AllCostsVsGpuFigure
-from graph_scripts.data_extractor import DataExtractor
+from .data_extractor import DataExtractor
+
 
 def create_figures():
     """
     This function takes in the user-specified parameters and coordinates
     the creation of publication figures. Please view the `if __name__ == __main__:`
     block in the source code to view or set parameters.
-    """
 
+    """
     create_theoretical_figures()
 
     if CREATE_IMAGE_TIME_VS_GPU_FIGURE or CREATE_BULK_TIME_VS_GPU_FIGURE or \
@@ -40,10 +45,10 @@ def create_empirical_figures(raw_data):
     """ This method takes in the raw_data extracted from JSON files and creates all data-based
         figures.
 
-        Arguments:
-        raw_data - data extracted from JSON benchmarking files (list of dicts)
-    """
+        Args:
+        raw_data ([{}]): data extracted from JSON benchmarking files
 
+    """
     for chosen_delay in DELAYS:
         # create multiple-image-number graph
         if CREATE_BULK_TIME_VS_GPU_FIGURE:
@@ -119,14 +124,14 @@ def create_theoretical_figures():
 def read_in_data():
     """ This method extracts benchmarking data from all JSON files in INPUT_FOLDER.
 
-        Arguments:
-        INPUT_FOLDER - the folder containing the JSON benchmarking results files (string)
+        Args:
+        INPUT_FOLDER (str; global): the folder containing the JSON benchmarking results files
 
-        Outputs:
-        data_extractor.aggregated_data - all JSON data, extracted as a list of dicts,
-                                         with data cleaned
+        Returns:
+        data_extractor.aggregated_data ([{}]): all JSON data, extracted as a list of dicts,
+                with data cleaned
+
     """
-
     # extract data from json files and format it
     data_extractor = DataExtractor(INPUT_FOLDER)
     data_extractor.extract_data()
@@ -169,13 +174,44 @@ if __name__ == '__main__':
     configure_logging()
 
     # validate configuration parameters
+    # If a folder starts with a slash, see if it exsits, and make it, if not.
+    # If a folder doesn't start with a slash, see if it exists in the current directory.
+    # If not, see if it exists in the parent directory. If not, create it in the parent directory.
+    base_path = getcwd()
     if INPUT_FOLDER[0] != "/":
-        INPUT_FOLDER = path.join(getcwd(), INPUT_FOLDER)
+        INPUT_FOLDER = path.join(base_path, INPUT_FOLDER)
+        try:
+            assert path.isdir(INPUT_FOLDER)
+        except AssertionError:
+            base_path = '/'.join(base_path.split('/')[:-1])
+            INPUT_FOLDER = path.join(base_path, INPUT_FOLDER.split('/')[-1])
+            try:
+                assert path.isdir(INPUT_FOLDER)
+            except AssertionError:
+                mkdir(INPUT_FOLDER)
+    else:
+        try:
+            assert path.isdir(INPUT_FOLDER)
+        except AssertionError:
+            mkdir(INPUT_FOLDER) 
+    base_path = getcwd()
     if OUTPUT_FOLDER[0] != "/":
-        OUTPUT_FOLDER = path.join(getcwd(), OUTPUT_FOLDER)
+        OUTPUT_FOLDER = path.join(base_path, OUTPUT_FOLDER)
+        try:
+            assert path.isdir(OUTPUT_FOLDER)
+        except AssertionError:
+            base_path = '/'.join(base_path.split('/')[:-1])
+            OUTPUT_FOLDER = path.join(base_path, OUTPUT_FOLDER.split('/')[-1])
+            try:
+                assert path.isdir(OUTPUT_FOLDER)
+            except AssertionError:
+                mkdir(OUTPUT_FOLDER)
+    else:
+        try:
+            assert path.isdir(OUTPUT_FOLDER)
+        except AssertionError:
+            mkdir(OUTPUT_FOLDER) 
     LOGGER.debug(f"Input directory: {INPUT_FOLDER}, Output directory: {OUTPUT_FOLDER}")
-    assert path.isdir(INPUT_FOLDER)
-    assert path.isdir(OUTPUT_FOLDER)
 
     # create figures
     create_figures()
