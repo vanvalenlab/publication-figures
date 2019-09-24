@@ -3,6 +3,11 @@
     folder.
 """
 
+
+# To handle relative imports gracefully
+if __name__ == "__main__" and __package__ is None:
+    __package__ = "figure_generation"
+
 import re
 import json
 import logging
@@ -11,17 +16,18 @@ from os import path, listdir
 
 import numpy as np
 from numpy.core._exceptions import UFuncTypeError
-from utils import NoGpuError
+from .utils import NoGpuError
+
 
 class DataExtractor():
     """ This class extracts all the Deepcell Kiosk benchmarking run data from the json files in a
         given folder.
 
-        Arguments:
-        data_folder - folder containing benchmarking run reuslts in JSON format (string)
-        logger_name - the name of the class whose logger is being created (string)
-    """
+        Args:
+            data_folder (str): folder containing benchmarking run reuslts in JSON format
+            logger_name (str): the name of the class whose logger is being created
 
+    """
     def __init__(self, data_folder, logger_name="DataExtractor"):
         self.data_folder = data_folder
         self.aggregated_data = []
@@ -42,13 +48,13 @@ class DataExtractor():
     def configure_logging(logger_name):
         """This function configures logging for the whole instance.
 
-            Arguments:
-            logger_name - the name of the class whose logger is being created (string)
+            Args:
+                logger_name (str): the name of the class whose logger is being created
 
-            Outputs:
-            class_logger - the place to write logs to (Logger?)
+            Returns:
+                Logger corresping to given logger_name
+
         """
-
         class_logger = logging.getLogger(logger_name)
         class_logger.setLevel(logging.DEBUG)
         sh = logging.StreamHandler()
@@ -67,9 +73,9 @@ class DataExtractor():
     def extract_data(self):
         """ This method gets a list of JSON files from self.data_folder and passes them one-by-one
             to self.handle_individual_files and appends the returned data to a list,
-            self.aggreagted_data.
-        """
+            self.aggregated_data.
 
+        """
         # extract data from json files
         data_files = [
             f for f
@@ -87,12 +93,13 @@ class DataExtractor():
         """ This method takes in a JSON filepath and extracts a plethora of intersting data fields
             from the file.
 
-            Arguments:
-            data_file - simple filename of file (string)
-            file_path - absolute path of file on disk (string) [stuff + data_file]
+            Args:
+                data_file (str): simple filename of file
+                file_path (str): absolute path of file on disk
 
-            Outputs:
-            data_to_keep - various cost and runtime data extracted from file
+            Returns:
+                data_to_keep (dict): various cost and runtime data extracted from file
+
         """
         with open(file_path, "r") as open_file:
             json_data = json.load(open_file)
@@ -196,20 +203,20 @@ class DataExtractor():
             data_to_keep['all_download_times'] = all_download_times
             return data_to_keep
 
-    @staticmethod
-    def handle_network_time_computation(all_upload_times, all_download_times):
+    def handle_network_time_computation(self, all_upload_times, all_download_times):
         """ This method handles the details of computing the 'network time', which is determined
             by a formula involving both the upload and download times during benchmarking. For now,
             we're just using 2*upload + 2*download, but we could make this a little more precise.
             I think this method gets called with image-level data for all images in all jobs in a
             run all at once, but I'm not certain.
 
-            Arguments:
-            all_upload_times - the upload times observed for each image in the run
-            all_download_times - the download times observed for each image in the run
+            Args:
+                all_upload_times (ndarray): the upload times observed for each image in the run
+                all_download_times (ndarray): the download times observed for each image in the run
 
             Outputs:
-            all_network_times - the 'network times' for each image in the run
+                all_network_times (ndarray): the 'network times' for each image in the run
+
         """
         upload_download_multiplier = 2
         # We need to wrap all this in a while loop because we might
@@ -271,12 +278,12 @@ class DataExtractor():
         """ This method computes network and storage costs during the run due to Google Cloud
             storage charges.
 
-            Arguments:
-            img_num - number of images uploaded in the current run
-            run_duration_minutes - time from beginning to end of run
+            Args:
+                img_num (int): number of images uploaded in the current run
+                run_duration_minutes (float): time from beginning to end of run
 
-            Outputs:
-            total_fees - total fees imposed by Google Cloud over the life of the run
+            Returns:
+                total_fees (float): total fees imposed by Google Cloud over the life of the run
         """
 
         total_storage_gb = 1.5*img_num/1000
