@@ -16,3 +16,6 @@ If you want to see the documentation for this project, follow these steps:
 2) Move into the `docs` directory.
 3) Execute `sphinx-build -b html . ./_build/`. Assuming no errors were encountered, there should be a series of HTML files in the `docs/_build` directory that contain the project's documentation. To view them, simply open `docs/_build/index.html` with a web browser.
 N.B.: If step 3 hits an error, it probably indicates that you already had Sphinx installed, and you're just a little unlucky today. Make sure your system is using the Python3 version of `Sphinx`. If it isn't, delete those Sphinx files or edit your `PYTHONPATH` to point to the Python3 Sphinx version. (On Debian-based Linux distributions, you can delete these files by executing `apt-get remove python2-sphinx`.
+
+### requirements.txt vs. setup.py
+I don't expect any users to need `requirements.txt` right now. Instead, the project should be installed using `pip install -e .`, which uses `setup.py`. I'm keeping `requirements.txt` around for now, though, in case it comes in handy later for some reason.
