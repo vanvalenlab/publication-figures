@@ -1,3 +1,5 @@
+[![Documentation Status](https://readthedocs.org/projects/deepcell-kiosk-figure-generation/badge/?version=latest)](https://deepcell-kiosk-figure-generation.readthedocs.io/en/latest/?badge=latest)
+
 Recreate the figures from https://www.biorxiv.org/content/10.1101/505032v3 in 4 easy steps!
 
 N.B.: Before following any of these steps, I'd recommend activating a Python `virtualenv`. It won't affect how easy it is to run this project, probably, but it will make your life easier after you've forgotten about this project and moved on to other Python packages.
