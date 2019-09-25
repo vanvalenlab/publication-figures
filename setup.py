@@ -38,8 +38,8 @@ class PyTest(TestCommand):
 setup(
     name='deepcell-kiosk-figure-generation',
     version=find_version('figure_generation','__init__.py'),
-    url='http://github.com/jeffknupp/sandman/',
-    license='Apache Software License',
+    url='https://deepcell.org',
+    license='Apache Software License (Modified)',
     author='Dylan Bannon',
     tests_require=['pytest'],
     install_requires=['matplotlib>=3.1.1,<4.0.0',
@@ -55,22 +55,22 @@ setup(
     test_suite='test.test_figure_generation',
     classifiers = [
         'Programming Language :: Python',
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Natural Language :: English',
-        'Environment :: Web Environment',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: Apache Software License',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: Apache Software License (Modified)',
         'Operating System :: OS Independent',
-        'Topic :: Software Development :: Libraries :: Python Modules',
-        'Topic :: Software Development :: Libraries :: Application Frameworks',
-        'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
+        'Topic :: Scientific Engineering :: Medical Science Apps.',
+        'Topic :: Scientific Engineering :: Visualization',
         ],
     extras_require={
-        'testing': ['pytest>=5.1.3,<6.0.0',
-                    'pylint>=2.3.1,<3.0.0',
-                   ],
-        'docs': ['Sphinx>=2.2.0,<3.0.0',
-                 'sphinx_rtd_theme>=0.4.3,<0.5.0',
-                ],
+        'testing': [
+            'pytest>=5.1.3,<6.0.0',
+            'pylint>=2.3.1,<3.0.0',
+            ],
+        'docs': [
+            'Sphinx>=2.2.0,<3.0.0',
+            'sphinx_rtd_theme>=0.4.3,<0.5.0',
+            ],
     }
 )
