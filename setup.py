@@ -66,6 +66,9 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
         ],
     extras_require={
-        'testing': ['pytest'],
+        'testing': ['pytest>=5.1.3,<6.0.0',
+                    'pylint>=2.3.1,<3.0.0',
+                   ],
+        'docs': ['Sphinx>=2.2.0,<3.0.0'],
     }
 )
