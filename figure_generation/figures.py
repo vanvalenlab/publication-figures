@@ -281,9 +281,8 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
             name = gpu + "_" + times[i]
             if self.data_df[[name]].isnull().all()[0]:
                 continue
-            else:
-                # we at least have some data, so let's plot
-                return True
+            # if we make it here, we at least have some data, so let's plot
+            return True
         # we don't need to be plotting this because we have no data
         return False
 
@@ -655,7 +654,7 @@ class BulkTimeVsGpuFigure(BaseEmpiricalFigure):
 
     def plot(self):
         """ Plot desired figure.
-        
+
         This method first calls self.refine_data() for pare the raw data down to only the runs of
         current interest. Then, it uses matplotlib to make a scatterplot of average runtimes for a
         given number of images vs. #GPU. In the scatterplot, different numbers of images are color-

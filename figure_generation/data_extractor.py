@@ -109,7 +109,7 @@ class DataExtractor():
 
     def handle_individual_files(self, data_file, file_path):
         """ Extract data from JSON file.
- 
+
         This method takes in a JSON filepath and extracts a plethora of intersting data fields
         from the file.
 

@@ -65,7 +65,7 @@ def create_figures():
 
 def create_empirical_figures(raw_data):
     """ Create empirical (data-based) figures according to global flags.
- 
+
     This method takes in the raw_data extracted from JSON files and creates all data-based
     figures.
 
