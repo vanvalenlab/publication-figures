@@ -1,8 +1,8 @@
 figure\_generation package
 ==========================
 
-Submodules
-----------
+.. Submodules
+.. ----------
 
 figure\_generation\.data\_extractor module
 ------------------------------------------
@@ -37,8 +37,8 @@ figure\_generation\.utils module
     :show-inheritance:
 
 
-Module contents
----------------
+.. Module contents
+.. ---------------
 
 .. automodule:: figure_generation
     :members:
