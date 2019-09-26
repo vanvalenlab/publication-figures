@@ -1,8 +1,8 @@
 # figures.py
 """ The terminal classes in this file are each intended to create a different type of figure.
-    They all inherit from either **BaseEmpiricalFigure** (for figures relying on benchmarking data)
-    or **BaseFigure** (for figures explaining some theoretical principle). It's worth noting that the
-    **BaseEmpiricalFigure** class inherits from the **BaseFigure** class.
+    They all inherit from either `BaseEmpiricalFigure` (for figures relying on benchmarking data)
+    or `BaseFigure` (for figures explaining some theoretical principle). It's worth noting that the
+    `BaseEmpiricalFigure` class inherits from the `BaseFigure` class.
 
 """
 
@@ -44,9 +44,11 @@ class BaseFigure(object):
 
     @staticmethod
     def define_colorblind_color_maps():
-        """ This method creates a series of colormaps for use in making plots intelligible by
-            people who are red-green color blind. This color map originally comes from
-            Bang Wong, Nature Methods, volume 8, page 441 (2011)
+        """ Create a list of color blind-friendly color maps.
+
+        This method creates a series of colormaps for use in making plots intelligible by
+        people who are red-green color blind. This color map originally comes from
+        Bang Wong, Nature Methods, volume 8, page 441 (2011)
 
         Returns:
             [matplotlib.colors.LinearSegmentedColorMap]: a list of color maps, each containing
@@ -76,7 +78,7 @@ class BaseFigure(object):
 
     @staticmethod
     def configure_logging(logger_name):
-        """This function configures logging for the whole instance.
+        """ This function configures logging for the whole instance.
 
         Args:
             logger_name (str): the name of the class whose logger is being created
@@ -135,10 +137,12 @@ class BaseEmpiricalFigure(BaseFigure):
 
     @staticmethod
     def format_data_for_error_plotting(data_lists):
-        """ This method is used to compute error bars for plots. It's only relevant for run
-            conditions that we have triplicate data for. Since it's also called for singleton
-            run conditions, we have some hacks in the code to get it to execute on them
-            without throwing an exception.
+        """ Compute error bars for plots.
+
+        This method is used to compute error bars for plots. It's only relevant for run
+        conditions that we have triplicate data for. Since it's also called for singleton
+        run conditions, we have some hacks in the code to get it to execute on them
+        without throwing an exception.
 
         Args:
             data_list ([{}]): list of dictionaries, one dictionary for each replicate of the chosen
@@ -197,10 +201,12 @@ class BaseEmpiricalFigure(BaseFigure):
 
 
 class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
-    """ This class produces a three-panel figure, for each GPU number in self.gpus, showing the
-        image-level distributions 1) Data Transfer Times, 2) Tensorflow Processing Times, and
-        3) Postprocessing Times for the aggregated data of all runs with a given set of
-        (delay)x(image number) conditions.
+    """ Output one three-panel image time vs. #GPU figure for each GPU number.
+
+    This class produces a three-panel figure, for each GPU number in self.gpus, showing the
+    image-level distributions 1) Data Transfer Times, 2) Tensorflow Processing Times, and
+    3) Postprocessing Times for the aggregated data of all runs with a given set of
+    (delay)x(image number) conditions.
 
     Args:
         raw_data ([{}]): list of dictionaries, each one representing a different
@@ -260,10 +266,12 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
         self.data_df = None
 
     def do_we_have_data(self, number_of_subplots, gpu, times):
-        """ This function looks at self.data_df[[name]] to see whether it contains any data.
-            If not, we return False, which instructs self.plot not to create a plot for the chosen
-            conditions. This is important when dealing with incomplete data series, such as our
-            1,000,000 image runs at both 0.5s and 5.0s delay.
+        """ Check whether we have any data for these run conditions.
+
+        This function looks at self.data_df[[name]] to see whether it contains any data.
+        If not, we return False, which instructs self.plot not to create a plot for the chosen
+        conditions. This is important when dealing with incomplete data series, such as our
+        1,000,000 image runs at both 0.5s and 5.0s delay.
 
         Returns:
             (bool): "True" if we have data; "False" if not
@@ -280,8 +288,10 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
         return False
 
     def refine_data(self):
-        """ Starting with all dat afrom all runs, pare data down to runs from the appropriate
-            (delay)x(image number) conditions.
+        """ Keep only data from desired runs.
+
+        Starting with all data from all runs, pare data down to runs from the appropriate
+        (delay)x(image number) conditions.
 
         Raises:
             MissingDataError: If we don't have any data for a chosen combination of upload
@@ -382,13 +392,15 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
 
 
     def plot(self):
-        """ This method first calls self.refine_data() for pare the raw data down to only the runs
-            of current interest. Then, for each chosen GPU number, it uses matplotlib to make a
-            three-panel plot of image-level histograms of data transfer times, Tensorflow response
-            times, and postprocessing times.
+        """ Plot desired figure(s).
+
+        This method first calls self.refine_data() for pare the raw data down to only the runs
+        of current interest. Then, for each chosen GPU number, it uses matplotlib to make a
+        three-panel plot of image-level histograms of data transfer times, Tensorflow response
+        times, and postprocessing times.
 
         Outputs:
-            [PDF figure.]
+            [PDF figure(s).]
 
         """
         # pare data from all runs down to just the runs of current interest
@@ -530,10 +542,12 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
 
 
 class BulkTimeVsGpuFigure(BaseEmpiricalFigure):
-    """ This class creates a single chart of runtimes for all runs with a given upload delay time.
-        The data is plotted as a scatterplot with multiple series, one series for the averaged
-        times for all runs of with a given number of images, with the number of GPUs used in the
-        runs being the x-axis.
+    """ Create a scatterplot of runtime vs. #GPU.
+
+    This class creates a single chart of runtimes for all runs with a given upload delay time.
+    The data is plotted as a scatterplot with multiple series, one series for the averaged
+    times for all runs of with a given number of images, with the number of GPUs used in the
+    runs being the x-axis.
 
     Args:
         raw_data ([{}]): list of dictionaries, each one representing a different
@@ -571,8 +585,10 @@ class BulkTimeVsGpuFigure(BaseEmpiricalFigure):
         self.data_df = None
 
     def refine_data(self):
-        """ Starting with all dat afrom all runs, pare data down to runs from the appropriate
-            (delay) conditions.
+        """ Keep only data from desired runs.
+
+        Starting with all data from all runs, pare data down to runs from the appropriate
+        (delay) conditions.
 
         Raises:
             MissingDataError: If we don't have any data for a chosen combination of upload
@@ -638,10 +654,12 @@ class BulkTimeVsGpuFigure(BaseEmpiricalFigure):
                                                "8GPU"])
 
     def plot(self):
-        """ This method first calls self.refine_data() for pare the raw data down to only the runs
-            of current interest. Then, for each chosen GPU number, it uses matplotlib to make a
-            three-panel plot of image-level histograms of data transfer times, Tensorflow response
-            times, and postprocessing times.
+        """ Plot desired figure.
+        
+        This method first calls self.refine_data() for pare the raw data down to only the runs of
+        current interest. Then, it uses matplotlib to make a scatterplot of average runtimes for a
+        given number of images vs. #GPU. In the scatterplot, different numbers of images are color-
+        coded.
 
         Outputs:
             [PDF figure.]
@@ -711,9 +729,11 @@ class BulkTimeVsGpuFigure(BaseEmpiricalFigure):
 
 
 class CostVsGpuFigure(BaseEmpiricalFigure):
-    """ This class creates multiple figures of costs for all runs with a given upload delay time,
-        with each figure containing all GPU conditions for all runs with a given set of
-        (delay)x(image number) conditions.
+    """ Create multiple figures of cost vs. #GPU, one for each number of images.
+
+    This class creates multiple figures of costs for all runs with a given upload delay time,
+    with each figure containing all GPU conditions for all runs with a given set of
+    (delay)x(image number) conditions.
 
     Args:
         raw_data ([{}]): list of dictionaries, each one representing a different
@@ -752,8 +772,10 @@ class CostVsGpuFigure(BaseEmpiricalFigure):
         self.data_df = None
 
     def refine_data(self):
-        """ Starting with all data from all runs, pare data down to runs from the appropriate
-            (delay) conditions.
+        """ Keep only data from desired runs.
+
+        Starting with all data from all runs, pare data down to runs from the appropriate
+        (delay) conditions.
 
         Raises:
             MissingDataError: If we don't have any data for a chosen combination of upload
@@ -812,10 +834,12 @@ class CostVsGpuFigure(BaseEmpiricalFigure):
                                            "8GPU"])
 
     def plot(self):
-        """ This method first calls self.refine_data() for pare the raw data down to only the runs
-            of current interest. Then, for each chosen (delay)x(image number) condition, it plots
-            the average of the Networking, GPU node, and CPU node costs across all runs, separated
-            by GPU number, as a stacked bar plot.
+        """ Plot desired figure(s).
+
+        This method first calls self.refine_data() for pare the raw data down to only the runs
+        of current interest. Then, for each chosen (delay)x(image number) condition, it plots
+        the average of the Networking, GPU node, and CPU node costs across all runs, separated
+        by GPU number, as a stacked bar plot.
 
         Outputs:
             [PDF figure.]
@@ -878,10 +902,12 @@ class CostVsGpuFigure(BaseEmpiricalFigure):
 
 
 class AllCostsVsGpuFigure(BaseEmpiricalFigure):
-    """ This class creates one chart of costs for all runs with a given upload delay. It is
-        structured as a series of side-by-side, stacked bar graphs. For each number of GPUs,
-        there is a cluster of bars, one for each image number, with each bar having a stack of
-        network costs, gpu node costs, and cpu costs.
+    """ Create figure of all run costs vs. #GPU.
+
+    This class creates one chart of costs for all runs with a given upload delay. It is
+    structured as a series of side-by-side, stacked bar graphs. For each number of GPUs,
+    there is a cluster of bars, one for each image number, with each bar having a stack of
+    network costs, gpu node costs, and cpu costs.
 
     Args:
         raw_data ([{}]): list of dictionaries, each one representing a different
@@ -922,8 +948,10 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
         assert len(self.chosen_img_nums) > 1
 
     def refine_data(self):
-        """ Starting with all data from all runs, pare data down to runs from the appropriate
-            (delay) conditions.
+        """ Keep only data from desired runs.
+
+        Starting with all data from all runs, pare data down to runs from the appropriate
+        (delay) conditions.
 
         Raises:
             MissingDataError: If we don't have any data for a chosen delay, then we raise this
@@ -987,12 +1015,14 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
             self.list_of_dfs.append(data_df)
 
     def plot(self):
-        """ This method first calls self.refine_data() to pare the raw data down to a list of
-            DataFrames for the runs of current interest. Then, for each DataFrame, which
-            corresponds to a (delay)x(image number) condition, it plots the average of the
-            Networking, GPU node, and CPU node costs across all runs, separated by GPU number,
-            as a stacked bar plot. All bars for a given GPU number are clustered together to
-            create a single multi-series, side-by-side stacked bar graph.
+        """ Plot desired figure.
+
+        This method first calls self.refine_data() to pare the raw data down to a list of
+        DataFrames for the runs of current interest. Then, for each DataFrame, which
+        corresponds to a (delay)x(image number) condition, it plots the average of the
+        Networking, GPU node, and CPU node costs across all runs, separated by GPU number,
+        as a stacked bar plot. All bars for a given GPU number are clustered together to
+        create a single multi-series, side-by-side stacked bar graph.
 
         Outputs:
             [PDF figure.]
@@ -1087,14 +1117,16 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
 
 
 class OptimalGpuNumberFigure(BaseFigure):
-    """ This class creates a single figure that illustrates the optimal number of GPUs to choose
-        for your cluster (assumed to be NVIDIA Tesla V100s), given an image upload speed and a
-        model processing time. It is assumed that the user needs to process a large number of
-        images, in this use case, and wants to utilize GPU hardware as efficiently as possible,
-        since, in practice, that is often the single most expensive component of the cloud hardware
-        used by the Deepcell Kiosk. It is further assumed that images are ~1.5Mb each. The
-        resulting plot has model prediction speed (images/s) on the x-axis and ideal number of GPUs
-        on the y-axis. The plotted data are lines representing different upload speeds (Mbps).
+    """ Create plot of optimal GPU numbers for given netowkr and software conditions.
+
+    This class creates a single figure that illustrates the optimal number of GPUs to choose
+    for your cluster (assumed to be NVIDIA Tesla V100s), given an image upload speed and a
+    model processing time. It is assumed that the user needs to process a large number of
+    images, in this use case, and wants to utilize GPU hardware as efficiently as possible,
+    since, in practice, that is often the single most expensive component of the cloud hardware
+    used by the Deepcell Kiosk. It is further assumed that images are ~1.5Mb each. The
+    resulting plot has model prediction speed (images/s) on the x-axis and ideal number of GPUs
+    on the y-axis. The plotted data are lines representing different upload speeds (Mbps).
 
     Arguments:
         output_folder (str): The folder into which the figures should be written.
@@ -1112,11 +1144,13 @@ class OptimalGpuNumberFigure(BaseFigure):
         self.plot_pdf_name = "optimal_gpu_nums.pdf"
 
     def plot(self):
-        """ This function plots optimal contours (for a given data transfer rate)[Mbps] on a
-            (model processing speed)[images/s] vs. (ideal # GPUs)[images/s] plot. Note that, unlike
-            the plot() methods of the other classes in this file, this method does not call a
-            refine_data() method, because it does not utilize empirical data. Instead, we briefly
-            calculate the required theoretical data below.
+        """ Plot desired figure.
+
+        This function plots optimal contours (for a given data transfer rate)[Mbps] on a
+        (model processing speed)[images/s] vs. (ideal # GPUs)[images/s] plot. Note that, unlike
+        the plot() methods of the other classes in this file, this method does not call a
+        refine_data() method, because it does not utilize empirical data. Instead, we briefly
+        calculate the required theoretical data below.
 
         """
         # declare data for plotting

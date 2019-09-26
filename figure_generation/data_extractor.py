@@ -17,8 +17,11 @@ from .utils import NoGpuError
 
 
 class DataExtractor():
-    """ This class extracts all the Deepcell Kiosk benchmarking run data from the json files in a
-            given folder.
+    """ Extract Deepcell Kiosk benchmarking run data from all JSON files in a given folder.
+
+    This class takes in the location of a folder containing JSON files output from Deepcell Kiosk
+    benchmarking runs (parameter `data_folder`) and parses them all into a list of dictionaries,
+    with one netry in the list for each JSON file.
 
     Args:
         data_folder (str): folder containing benchmarking run reuslts in JSON format
@@ -26,7 +29,7 @@ class DataExtractor():
 
     Attributes:
         data_folder (str): absolute path to folder containing raw benchmarking data
-        aggregated_data ([]): collected data from all benchmarking runs in data_folder
+        aggregated_data ([{}]): collected data from all benchmarking runs in data_folder
         total_successes (int): count of benchmarking files processed without error; intiialized to
             zero
         total_failures (int): count of benchmarking files processed with errors; intiialized to
@@ -59,7 +62,7 @@ class DataExtractor():
 
     @staticmethod
     def configure_logging(logger_name):
-        """This function configures logging for the whole instance.
+        """Configure logging for the whole instance.
 
         Args:
             logger_name (str): the name of the class whose logger is being created
@@ -84,9 +87,11 @@ class DataExtractor():
         return class_logger
 
     def extract_data(self):
-        """ This method gets a list of JSON files from self.data_folder and passes them one-by-one
-            to self.handle_individual_files and appends the returned data to a list,
-            self.aggregated_data.
+        """ Iterate over list JSON files and compile data from them.
+
+        This method gets a list of JSON files from self.data_folder and passes them one-by-one
+        to self.handle_individual_files and appends the returned data to a list,
+        self.aggregated_data.
 
         """
         # extract data from json files
@@ -103,8 +108,10 @@ class DataExtractor():
         self.logger.info(f'Total failures: {self.total_failures}')
 
     def handle_individual_files(self, data_file, file_path):
-        """ This method takes in a JSON filepath and extracts a plethora of intersting data fields
-            from the file.
+        """ Extract data from JSON file.
+ 
+        This method takes in a JSON filepath and extracts a plethora of intersting data fields
+        from the file.
 
         Args:
             data_file (str): simple filename of file
@@ -225,11 +232,13 @@ class DataExtractor():
             return data_to_keep
 
     def handle_network_time_computation(self, all_upload_times, all_download_times):
-        """ This method handles the details of computing the 'network time', which is determined
-            by a formula involving both the upload and download times during benchmarking. For now,
-            we're just using 2*upload + 2*download, but we could make this a little more precise.
-            I think this method gets called with image-level data for all images in all jobs in a
-            run all at once, but I'm not certain.
+        """ Compute `network time` for a given benchmarking run.
+
+        This method handles the details of computing the 'network time', which is determined
+        by a formula involving both the upload and download times during benchmarking. For now,
+        we're just using 2*upload + 2*download, but we could make this a little more precise.
+        I think this method gets called with image-level data for all images in all jobs in a
+        run all at once, but I'm not certain.
 
         Args:
             all_upload_times (ndarray): the upload times observed for each image in the run
@@ -306,8 +315,10 @@ class DataExtractor():
 
     @staticmethod
     def extra_network_costs(img_num, run_duration_minutes):
-        """ This method computes network and storage costs during the run due to Google Cloud
-            storage charges.
+        """ Compute network and storage costs for a given benchmarking run.
+
+        This method computes network and storage costs during the run due to Google Cloud
+        storage charges.
 
         Args:
             img_num (int): number of images uploaded in the current run

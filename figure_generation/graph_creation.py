@@ -1,7 +1,5 @@
 # graph_creation.py
 """
-graph_creation.py
-
 The purpose of this script is to coordinate the production of the publication figures.
 Preprint available here: https://www.biorxiv.org/content/10.1101/505032v3
 
@@ -51,7 +49,8 @@ from figure_generation.data_extractor import DataExtractor
 
 
 def create_figures():
-    """
+    """ Create figures according to global flags.
+
     This function takes in the user-specified parameters and coordinates
     the creation of publication figures. Please view the `if __name__ == __main__:`
     block in the source code to view or set parameters.
@@ -65,8 +64,10 @@ def create_figures():
         create_empirical_figures(raw_data)
 
 def create_empirical_figures(raw_data):
-    """ This method takes in the raw_data extracted from JSON files and creates all data-based
-        figures.
+    """ Create empirical (data-based) figures according to global flags.
+ 
+    This method takes in the raw_data extracted from JSON files and creates all data-based
+    figures.
 
     Args:
         raw_data ([{}]): data extracted from JSON benchmarking files

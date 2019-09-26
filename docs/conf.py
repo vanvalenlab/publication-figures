@@ -57,13 +57,12 @@ html_theme = 'sphinx_rtd_theme'
 
 # options for sphinx_rtd_theme
 html_theme_options = {
-    'canonical_url': '',
+    'canonical_url': 'https://deepcell-kiosk-figure-generation.readthedocs.io/',
     'logo_only': False,
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
-    'style_external_links': False,
-    'vcs_pageview_mode': '',
-    'style_nav_header_background': 'white',
+    'style_external_links': True,
+    'style_nav_header_background': 'gray',
     # Toc options
     'collapse_navigation': True,
     'sticky_navigation': True,
