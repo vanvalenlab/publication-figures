@@ -1,5 +1,5 @@
-figure_generation
-=================
+Deepcell Kiosk Figure Generation
+================================
 
 .. toctree::
    :maxdepth: 4
