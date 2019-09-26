@@ -44,14 +44,10 @@ Todo:
 import logging
 from os import path, getcwd, mkdir
 
-# To handle relative imports gracefully
-if __name__ == "__main__" and __package__ is None:
-    __package__ = "figure_generation"
-
-from .utils import MissingDataError
-from .figures import ImageTimeVsGpuFigure, BulkTimeVsGpuFigure, CostVsGpuFigure, \
+from figure_generation.utils import MissingDataError
+from figure_generation.figures import ImageTimeVsGpuFigure, BulkTimeVsGpuFigure, CostVsGpuFigure, \
                                   OptimalGpuNumberFigure, AllCostsVsGpuFigure
-from .data_extractor import DataExtractor
+from figure_generation.data_extractor import DataExtractor
 
 
 def create_figures():
