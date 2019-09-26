@@ -18,7 +18,7 @@ from .utils import NoGpuError
 
 class DataExtractor():
     """ This class extracts all the Deepcell Kiosk benchmarking run data from the json files in a
-        given folder.
+            given folder.
 
     Args:
         data_folder (str): folder containing benchmarking run reuslts in JSON format
