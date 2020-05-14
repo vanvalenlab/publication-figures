@@ -629,28 +629,17 @@ class BulkTimeVsGpuFigure(BaseEmpiricalFigure):
                 var_index = int((col - var_num) / len(self.chosen_img_nums))
                 data_array[row, col] = \
                     output_data[str(self.chosen_img_nums[var_num])][var_index][row]
-        if self.chosen_delay == 5.0:
-            data_array = np.delete(data_array, 5, 1)
-            data_array = np.delete(data_array, 2, 1)
-            self.data_df = pd.DataFrame(data_array,
-                                        columns=["10000",
-                                                 "100000",
-                                                 "10000_err",
-                                                 "100000_err"],
-                                        index=["1GPU",
-                                               "4GPU",
-                                               "8GPU"])
-        elif self.chosen_delay == 0.5:
-            self.data_df = pd.DataFrame(data_array,
-                                        columns=["10000",
-                                                 "100000",
-                                                 "1000000",
-                                                 "10000_err",
-                                                 "100000_err",
-                                                 "1000000_err"],
-                                        index=["1GPU",
-                                               "4GPU",
-                                               "8GPU"])
+
+        self.data_df = pd.DataFrame(data_array,
+                                    columns=["10000",
+                                             "100000",
+                                             "1000000",
+                                             "10000_err",
+                                             "100000_err",
+                                             "1000000_err"],
+                                    index=["1GPU",
+                                           "4GPU",
+                                           "8GPU"])
 
     def plot(self):
         """ Plot desired figure.
@@ -691,13 +680,12 @@ class BulkTimeVsGpuFigure(BaseEmpiricalFigure):
                       linestyle="None",
                       fmt='o',
                       color=self.color_maps[0](1))
-        if self.chosen_delay == 0.5:
-            axis.errorbar(x_ticks,
-                          self.data_df.loc[["1GPU", "4GPU", "8GPU"], "1000000"],
-                          yerr=self.data_df.loc[["1GPU", "4GPU", "8GPU"], "1000000_err"],
-                          linestyle="None",
-                          fmt='o',
-                          color=self.color_maps[0](2))
+        axis.errorbar(x_ticks,
+                      self.data_df.loc[["1GPU", "4GPU", "8GPU"], "1000000"],
+                      yerr=self.data_df.loc[["1GPU", "4GPU", "8GPU"], "1000000_err"],
+                      linestyle="None",
+                      fmt='o',
+                      color=self.color_maps[0](2))
         axis.set_title(self.plot_title)
         axis.set_ylabel(self.y_label)
         axis.set_xlabel('Number of GPUs')
@@ -706,11 +694,8 @@ class BulkTimeVsGpuFigure(BaseEmpiricalFigure):
         axis.set_ylim(ymin=10, ymax=1000)
         axis.set_xticklabels(["1 GPU", "4 GPU", "8 GPU"])
         axis.set_yscale("log")
-        if self.chosen_delay == 5.0:
-            axis.legend(["10,000 Images", "100,000 Images"], prop={'size':self.font_size})
-        elif self.chosen_delay == 0.5:
-            axis.legend(["10,000 Images", "100,000 Images", "1,000,000 Images"],
-                        prop={'size':self.font_size})
+        axis.legend(["10,000 Images", "100,000 Images", "1,000,000 Images"],
+                    prop={'size':self.font_size})
 
         # save figure
         plt.savefig(path.join(self.output_folder, self.plot_pdf_name), transparent=True)
@@ -1057,19 +1042,9 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
         for img_num_index, data_df in enumerate(self.list_of_dfs):
             images = self.chosen_img_nums[img_num_index]
             # have to account for the incomplete 1,000,000 image dataset
-            if images != 1000000:
-                gpu_labels = ["1GPU", "4GPU", "8GPU"]
-                x_ticks_begin = 0
-                x_ticks_end = None
-            else:
-                if self.chosen_delay == 0.5:
-                    gpu_labels = ["4GPU", "8GPU"]
-                    x_ticks_begin = 1
-                    x_ticks_end = None
-                elif self.chosen_delay == 5.0:
-                    gpu_labels = ["1GPU"]
-                    x_ticks_begin = None
-                    x_ticks_end = 1
+            gpu_labels = ["1GPU", "4GPU", "8GPU"]
+            x_ticks_begin = 0
+            x_ticks_end = None
             axis.bar(
                 all_x_ticks[img_num_index][x_ticks_begin:x_ticks_end],
                 data_df.loc[gpu_labels, "network costs"],
