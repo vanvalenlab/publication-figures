@@ -466,7 +466,7 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
                     # compute bin cutoffs
                     data_min = np.min(self.data_df[[name]])
                     data_max = np.max(self.data_df[[name]])
-                    max_increment = np.ceil(data_max-data_min)
+                    max_increment = np.int(np.ceil(data_max-data_min))
                     bin_cutoffs = [float(data_min + increment)
                                    for increment in
                                    np.linspace(0, max_increment, max_increment * 10 + 1)]
