@@ -329,22 +329,37 @@ class DataExtractor():
             total_fees (float): total fees imposed by Google Cloud over the life of the run
 
         """
-        total_storage_gb = 1.5 * img_num / 1000
+        jobs = img_num / images_per_job
+
+        input_file_size_gb = 1.5 / 1^3  # 1.5 MB input image
+        output_file_size_gb = 5.6 / 1^6  # 5.6 kB output image
+        total_storage_input_gb = input_file_size_gb * img_num
+        total_storage_output_gb = output_file_size_gb * img_num
+        total_storage_gb = total_storage_input_gb + total_storage_output_gb
         run_duration_months = run_duration_minutes / 60 / 24 / 30
 
-        total_storage_cost = 0.026 * total_storage_gb * run_duration_months
+        # https://cloud.google.com/storage/pricing#pricing
+        egress_rate = .12
+        storage_rate = .026
+
+        total_storage_cost = storage_rate * total_storage_gb * run_duration_months
         # divide in half. first images are in bucket longer than final images.
         total_storage_cost = total_storage_cost / 2
 
-        jobs = img_num / images_per_job
         # Each zip job gets downloaded, and all its content is uploaded.
         # Each content is then downloaded, processed, and the results uploaded
         # then the zip consumer downloads all results and uploads the final zip
-        total_uploads = jobs * (1 + 2 * images_per_job)
-        total_downloads = jobs * (1 + 2 * images_per_job)
+        # https://cloud.google.com/storage/pricing#operations-by-class
+        download_fees = 0.004 * jobs * (1 + 2 * images_per_job) / 10000
+        publication_fees = 0.05 * jobs * (1 + 2 * images_per_job) / 10000
 
-        download_fees = 0.004 * total_downloads / 10000
-        publication_fees = 0.05 * total_uploads / 10000
+        # 1000GB which would be 10 dollars
+        egress_fees = egress_rate * total_storage_output_gb
 
-        total_fees = total_storage_cost + download_fees + publication_fees
+        total_fees = (
+            total_storage_cost +
+            download_fees +
+            publication_fees +
+            egress_fees
+        )
         return total_fees
