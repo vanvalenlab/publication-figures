@@ -1040,7 +1040,6 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
                 offset_x_ticks = [x_tick + bar_width*offset for x_tick in x_ticks]
                 all_x_ticks.append(offset_x_ticks)
         for img_num_index, data_df in enumerate(self.list_of_dfs):
-            images = self.chosen_img_nums[img_num_index]
             # have to account for the incomplete 1,000,000 image dataset
             gpu_labels = ["1GPU", "4GPU", "8GPU"]
             x_ticks_begin = 0
