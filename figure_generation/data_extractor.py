@@ -331,8 +331,8 @@ class DataExtractor():
         """
         jobs = img_num / images_per_job
 
-        input_file_size_gb = 1.5 / 1^3  # 1.5 MB input image
-        output_file_size_gb = 5.6 / 1^6  # 5.6 kB output image
+        input_file_size_gb = 1.5 / 10 ** 3  # 1.5 MB input image
+        output_file_size_gb = 5.6 / 10 ** 6  # 5.6 kB output image
         total_storage_input_gb = input_file_size_gb * img_num
         total_storage_output_gb = output_file_size_gb * img_num
         total_storage_gb = total_storage_input_gb + total_storage_output_gb
