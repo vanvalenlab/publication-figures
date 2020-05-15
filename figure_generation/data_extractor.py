@@ -314,7 +314,7 @@ class DataExtractor():
         return all_network_times
 
     @staticmethod
-    def extra_network_costs(img_num, run_duration_minutes):
+    def extra_network_costs(img_num, run_duration_minutes, images_per_job=100):
         """ Compute network and storage costs for a given benchmarking run.
 
         This method computes network and storage costs during the run due to Google Cloud
@@ -323,17 +323,27 @@ class DataExtractor():
         Args:
             img_num (int): number of images uploaded in the current run
             run_duration_minutes (float): time from beginning to end of run
+            images_per_job (int): number of images in a zip job.
 
         Returns:
             total_fees (float): total fees imposed by Google Cloud over the life of the run
 
         """
-        total_storage_gb = 1.5*img_num/1000
-        run_duration_months = run_duration_minutes/24/30
+        total_storage_gb = 1.5 * img_num / 1000
+        run_duration_months = run_duration_minutes / 60 / 24 / 30
 
-        total_storage_cost = 0.026*total_storage_gb*run_duration_months
-        download_fees = 0.004*img_num/10000
-        publication_fees = 0.05*img_num/10000
+        total_storage_cost = 0.026 * total_storage_gb * run_duration_months
+
+        jobs = img_num / images_per_job
+
+        # Each zip job gets downloaded, and all its content is uploaded.
+        # Each content is then downloaded, processed, and the results uploaded
+        # then the zip consumer downloads all results and uploads the final zip
+        total_uploads = jobs * (1 + 2 * images_per_job)
+        total_downloads = jobs * (1 + 2 * images_per_job)
+
+        download_fees = 0.004 * total_downloads / 1000
+        publication_fees = 0.05 * total_uploads / 10000
 
         total_fees = total_storage_cost + download_fees + publication_fees
         return total_fees
