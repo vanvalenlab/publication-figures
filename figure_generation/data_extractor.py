@@ -342,7 +342,7 @@ class DataExtractor():
         total_uploads = jobs * (1 + 2 * images_per_job)
         total_downloads = jobs * (1 + 2 * images_per_job)
 
-        download_fees = 0.004 * total_downloads / 1000
+        download_fees = 0.004 * total_downloads / 10000
         publication_fees = 0.05 * total_uploads / 10000
 
         total_fees = total_storage_cost + download_fees + publication_fees
