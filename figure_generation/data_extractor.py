@@ -333,9 +333,10 @@ class DataExtractor():
         run_duration_months = run_duration_minutes / 60 / 24 / 30
 
         total_storage_cost = 0.026 * total_storage_gb * run_duration_months
+        # divide in half. first images are in bucket longer than final images.
+        total_storage_cost = total_storage_cost / 2
 
         jobs = img_num / images_per_job
-
         # Each zip job gets downloaded, and all its content is uploaded.
         # Each content is then downloaded, processed, and the results uploaded
         # then the zip consumer downloads all results and uploads the final zip
