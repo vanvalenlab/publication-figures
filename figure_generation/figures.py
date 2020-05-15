@@ -691,7 +691,7 @@ class BulkTimeVsGpuFigure(BaseEmpiricalFigure):
         axis.set_xlabel('Number of GPUs')
         axis.set_xticks(x_ticks)
         axis.set_xlim(xmin, xmax)
-        axis.set_ylim(ymin=10, ymax=1000)
+        axis.set_ylim(ymin=10, ymax=10000)
         axis.set_xticklabels(["1 GPU", "4 GPU", "8 GPU"])
         axis.set_yscale("log")
         axis.legend(["10,000 Images", "100,000 Images", "1,000,000 Images"],
