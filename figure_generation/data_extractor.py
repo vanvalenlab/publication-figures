@@ -379,7 +379,7 @@ class DataExtractor():
         # assuming requests are randomly routed to a server.
         zone_egress_fees = (
             0.01 *  # inter-zone egress rate, $0.01 per GB outgoing.
-            1 - 1 / num_zones *  # probability of inter-zone request.
+            (1 - 1 / num_zones) *  # probability of inter-zone request.
             img_num * (input_file_gb + output_file_gb)  # total GB
         )
 
