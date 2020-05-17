@@ -337,7 +337,7 @@ class DataExtractor():
         output_file_gb = 5.6 / 10 ** 6  # 5.6 kB output image
 
         # General Storage Fees (per GB per month)
-        # https://cloud.google.com/storage/pricing#pricing
+        # https://cloud.google.com/storage/pricing#storage-pricing
         storage_fees = (
             .026 *  # storage rate per GB per month
             img_num * (output_file_gb + input_file_gb) *  # total GB saved.
@@ -346,8 +346,21 @@ class DataExtractor():
         # divide in half. first images are in bucket longer than final images.
         storage_fees = storage_fees / 2
 
+        # Storage Network Fees
+        # https://cloud.google.com/storage/pricing#network-pricing
+        # Only user-uploaded and user-downloaded files count towards storage.
+        # egress. The intermediate files that are uploaded and downloaded are
+        # in a free tier of
+        storage_egress_fees = (
+            .12 *  # egress rate per GB
+            (
+                input_file_gb * img_num +  # all input images
+                output_file_gb * img_num  # all final output images
+            )
+        )
+
         # Storage Operations Fees (Class A vs Class B Operations)
-        # https://cloud.google.com/storage/pricing#operations-by-class
+        # https://cloud.google.com/storage/pricing#operations-pricing
         # Each zip job gets downloaded, and all its content is uploaded.
         # Each content is then downloaded, processed, and the results uploaded
         # then the zip consumer downloads all results and uploads the final zip
@@ -362,17 +375,6 @@ class DataExtractor():
             jobs  # number of zip files
         )
         operations_fees = class_a_fees + class_b_fees
-
-        # Storage Egress Fees
-        # https://cloud.google.com/storage/pricing#pricing
-        storage_egress_fees = (
-            .12 *  # egress rate per GB
-            (
-                # 2 * input_file_gb * img_num +  # download zip and zip contents
-                # output_file_gb * img_num +  # results of each file in zip
-                output_file_gb * img_num  # all final output downloads
-            )
-        )
 
         # Inter-Zone Egress Fees
         # https://cloud.google.com/compute/all-pricing#network_pricing
