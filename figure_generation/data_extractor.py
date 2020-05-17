@@ -353,12 +353,12 @@ class DataExtractor():
         # then the zip consumer downloads all results and uploads the final zip
         class_a_fees = (
             0.05 / 10000 *  # class A rate
-            (2 * images_per_job + 1) *  # image files and predictions final zip
+            (2 * images_per_job + 1) *  # inputs and outputs + final zip
             jobs  # number of zip files
         )
         class_b_fees = (
             0.004 / 10000 *  # class B rate
-            (1 + 2 * images_per_job) *  # inputs and outputs + final zip
+            (2 * images_per_job + 1) *  # inputs and outputs + original zip
             jobs  # number of zip files
         )
         operations_fees = class_a_fees + class_b_fees
