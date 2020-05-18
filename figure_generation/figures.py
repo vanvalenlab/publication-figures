@@ -782,7 +782,8 @@ class CostVsGpuFigure(BaseEmpiricalFigure):
         variables_of_interest = ['total_node_and_networking_costs',
                                  'cpu_node_cost',
                                  'gpu_node_cost',
-                                 'extra_network_costs']
+                                 'extra_network_costs',
+                                 'zone_egress_cost']
         gpu_nums = [1, 4, 8]
         output_data = {}
         for variable_of_interest in variables_of_interest:
@@ -808,11 +809,13 @@ class CostVsGpuFigure(BaseEmpiricalFigure):
                                     columns=["total cost",
                                              "cpu node cost",
                                              "gpu node cost",
-                                             "network costs",
+                                             "data costs",
+                                             "network egress cost",
                                              "total_err",
                                              "cpu_err",
                                              "gpu_err",
-                                             "network_err"],
+                                             "data_err",
+                                             "egress_err"],
                                     index=["1GPU",
                                            "4GPU",
                                            "8GPU"])
@@ -847,8 +850,8 @@ class CostVsGpuFigure(BaseEmpiricalFigure):
         _, axis = plt.subplots(1, figsize=(15, 10))
         axis.bar(
             x_ticks,
-            self.data_df.loc[["1GPU", "4GPU", "8GPU"], "network costs"],
-            yerr=self.data_df.loc[["1GPU", "4GPU", "8GPU"], "network_err"],
+            self.data_df.loc[["1GPU", "4GPU", "8GPU"], "data costs"],
+            yerr=self.data_df.loc[["1GPU", "4GPU", "8GPU"], "data_err"],
             width=bar_width,
             color=self.color_maps[0](0),
             bottom=None)
@@ -858,7 +861,7 @@ class CostVsGpuFigure(BaseEmpiricalFigure):
             yerr=self.data_df.loc[["1GPU", "4GPU", "8GPU"], "gpu_err"],
             width=bar_width,
             color=self.color_maps[0](1),
-            bottom=self.data_df.loc[["1GPU", "4GPU", "8GPU"], "network costs"])
+            bottom=self.data_df.loc[["1GPU", "4GPU", "8GPU"], "data costs"])
         axis.bar(
             x_ticks,
             self.data_df.loc[["1GPU", "4GPU", "8GPU"], "cpu node cost"],
@@ -866,14 +869,23 @@ class CostVsGpuFigure(BaseEmpiricalFigure):
             width=bar_width,
             color=self.color_maps[0](2),
             bottom=self.data_df.loc[["1GPU", "4GPU", "8GPU"], "gpu node cost"] + \
-                   self.data_df.loc[["1GPU", "4GPU", "8GPU"], "network costs"])
+                   self.data_df.loc[["1GPU", "4GPU", "8GPU"], "data costs"])
+        axis.bar(
+            x_ticks,
+            self.data_df.loc[["1GPU", "4GPU", "8GPU"], "network egress cost"],
+            yerr=self.data_df.loc[["1GPU", "4GPU", "8GPU"], "egress_err"],
+            width=bar_width,
+            color=self.color_maps[0](3),
+            bottom=self.data_df.loc[["1GPU", "4GPU", "8GPU"], "gpu node cost"] + \
+                   self.data_df.loc[["1GPU", "4GPU", "8GPU"], "data costs"] + \
+                   self.data_df.loc[["1GPU", "4GPU", "8GPU"], "cpu node cost"])
         axis.set_title(self.plot_title)
         axis.set_ylabel(self.y_label)
         axis.set_xlabel('Number of GPUs')
         axis.set_xticks(x_ticks)
         axis.set_xlim(xmin, xmax)
         axis.set_xticklabels(["1 GPU", "4 GPU", "8 GPU"])
-        axis.legend(["Network and Data Costs", "GPU Node Cost", "CPU Node Cost"],
+        axis.legend(["Data Costs", "GPU Node Cost", "CPU Node Cost", "Network Egress Cost"],
                     prop={'size':self.font_size},
                     loc=[0.30, 0.75])
 
@@ -891,7 +903,7 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
     This class creates one chart of costs for all runs with a given upload delay. It is
     structured as a series of side-by-side, stacked bar graphs. For each number of GPUs,
     there is a cluster of bars, one for each image number, with each bar having a stack of
-    network costs, gpu node costs, and cpu costs.
+    data costs, gpu node costs, and cpu costs.
 
     Args:
         raw_data ([{}]): list of dictionaries, each one representing a different
@@ -952,7 +964,8 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
         variables_of_interest = ['total_node_and_networking_costs',
                                  'cpu_node_cost',
                                  'gpu_node_cost',
-                                 'extra_network_costs']
+                                 'extra_network_costs',
+                                 'zone_egress_cost']
         gpu_nums = [1, 4, 8]
         col_num = len(variables_of_interest)*2
         row_num = len(gpu_nums)
@@ -988,11 +1001,13 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
                                    columns=["total cost",
                                             "cpu node cost",
                                             "gpu node cost",
-                                            "network costs",
+                                            "data costs",
+                                            "network egress cost",
                                             "total_err",
                                             "cpu_err",
                                             "gpu_err",
-                                            "network_err"],
+                                            "data_err",
+                                            "egress_err"],
                                    index=["1GPU", "4GPU", "8GPU"])
 
             # append to the list of dataframes
@@ -1046,8 +1061,8 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
             x_ticks_end = None
             axis.bar(
                 all_x_ticks[img_num_index][x_ticks_begin:x_ticks_end],
-                data_df.loc[gpu_labels, "network costs"],
-                yerr=data_df.loc[gpu_labels, "network_err"],
+                data_df.loc[gpu_labels, "data costs"],
+                yerr=data_df.loc[gpu_labels, "data_err"],
                 width=bar_width,
                 color=self.color_maps[0](0),
                 bottom=None)
@@ -1057,7 +1072,7 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
                 yerr=data_df.loc[gpu_labels, "gpu_err"],
                 width=bar_width,
                 color=self.color_maps[0](1),
-                bottom=data_df.loc[gpu_labels, "network costs"])
+                bottom=data_df.loc[gpu_labels, "data costs"])
             axis.bar(
                 all_x_ticks[img_num_index][x_ticks_begin:x_ticks_end],
                 data_df.loc[gpu_labels, "cpu node cost"],
@@ -1065,7 +1080,16 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
                 width=bar_width,
                 color=self.color_maps[0](2),
                 bottom=data_df.loc[gpu_labels, "gpu node cost"] + \
-                       data_df.loc[gpu_labels, "network costs"])
+                       data_df.loc[gpu_labels, "data costs"])
+            axis.bar(
+                all_x_ticks[img_num_index][x_ticks_begin:x_ticks_end],
+                data_df.loc[gpu_labels, "network egress cost"],
+                yerr=data_df.loc[gpu_labels, "egress_err"],
+                width=bar_width,
+                color=self.color_maps[0](3),
+                bottom=data_df.loc[gpu_labels, "gpu node cost"] + \
+                       data_df.loc[gpu_labels, "data costs"] + \
+                       data_df.loc[gpu_labels, "cpu node cost"])
         axis.set_title(self.plot_title)
         axis.set_ylabel(self.y_label)
         axis.set_xlabel('Number of GPUs')
@@ -1073,11 +1097,11 @@ class AllCostsVsGpuFigure(BaseEmpiricalFigure):
         axis.set_xlim(xmin, xmax)
         axis.set_xticklabels(["1 GPU", "4 GPU", "8 GPU"])
         if self.chosen_delay == 0.5:
-            axis.legend(["Network and Data Costs", "GPU Node Cost", "CPU Node Cost"],
+            axis.legend(["Data Costs", "GPU Node Cost", "CPU Node Cost", "Network Egress Cost"],
                         prop={'size':self.font_size},
                         loc=[0.02, 0.80])
         elif self.chosen_delay == 5.0:
-            axis.legend(["Network and Data Costs", "GPU Node Cost", "CPU Node Cost"],
+            axis.legend(["Data Costs", "GPU Node Cost", "CPU Node Cost", "Network Egress Cost"],
                         prop={'size':self.font_size},
                         loc=[0.6, 0.80])
 

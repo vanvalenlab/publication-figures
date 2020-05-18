@@ -151,9 +151,10 @@ class DataExtractor():
                 raise NoGpuError(f"Whoops, no gpus in filename {data_file}.")
             data_to_keep['num_gpus'] = int(num_gpus)
             # replacing total cost data
-            network_costs = self.extra_network_costs(
+            network_costs, egress_costs = self.extra_network_costs(
                 data_to_keep['num_images'], data_to_keep['time_elapsed'])
             data_to_keep['extra_network_costs'] = network_costs
+            data_to_keep['zone_egress_cost'] = egress_costs
             data_to_keep['total_node_and_networking_costs'] = \
                     data_to_keep['cpu_node_cost'] + \
                     data_to_keep['gpu_node_cost'] + \
@@ -386,7 +387,6 @@ class DataExtractor():
         total_fees = (
             storage_fees +
             operations_fees +
-            storage_egress_fees +
-            zone_egress_fees
+            storage_egress_fees
         )
-        return total_fees
+        return total_fees, zone_egress_fees
