@@ -315,7 +315,7 @@ class DataExtractor():
 
     @staticmethod
     def extra_network_costs(img_num, run_duration_minutes,
-                            images_per_job=100, num_zones=1):
+                            images_per_job=100, num_zones=2):
         """ Compute network and storage costs for a given benchmarking run.
 
         This method computes network and storage costs during the run due to
