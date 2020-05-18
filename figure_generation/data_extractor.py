@@ -335,6 +335,7 @@ class DataExtractor():
 
         input_file_gb = 1.5 / 10 ** 3  # 1.5 MB input image
         output_file_gb = 5.6 / 10 ** 6  # 5.6 kB output image
+        payload_size_gb = 11010048 / 10 ** 9  # the tiled float32 array
 
         # General Storage Fees (per GB per month)
         # https://cloud.google.com/storage/pricing#storage-pricing
@@ -379,7 +380,7 @@ class DataExtractor():
         zone_egress_fees = (
             0.01 *  # inter-zone egress rate, $0.01 per GB outgoing.
             (1 - 1 / num_zones) *  # probability of inter-zone request.
-            img_num * (input_file_gb * 3)  # GB of raw + model response
+            img_num * (payload_size_gb * 3)  # GB of raw + model response
         )
 
         total_fees = (
