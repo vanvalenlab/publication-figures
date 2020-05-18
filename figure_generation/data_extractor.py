@@ -382,7 +382,7 @@ class DataExtractor():
         zone_egress_fees = (
             0.01 *  # inter-zone egress rate, $0.01 per GB outgoing.
             (1 - 1 / num_zones) *  # probability of inter-zone request.
-            img_num * (input_file_gb + output_file_gb)  # total GB
+            img_num * (input_file_gb * 3)  # GB of raw + model response
         )
 
         total_fees = (
