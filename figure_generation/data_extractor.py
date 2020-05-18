@@ -353,10 +353,7 @@ class DataExtractor():
         # in a free tier of
         storage_egress_fees = (
             .12 *  # egress rate per GB
-            (
-                input_file_gb * img_num +  # all input images
-                output_file_gb * img_num  # all final output images
-            )
+            output_file_gb * img_num  # all final output images
         )
 
         # Storage Operations Fees (Class A vs Class B Operations)
