@@ -48,7 +48,9 @@ class BaseFigure(object):
 
         This method creates a series of colormaps for use in making plots intelligible by
         people who are red-green color blind. This color map originally comes from
-        Bang Wong, Nature Methods, volume 8, page 441 (2011)
+        Bang Wong, Nature Methods, volume 8, page 441 (2011).
+
+        https://www.nature.com/articles/nmeth.1618
 
         Returns:
             [matplotlib.colors.LinearSegmentedColorMap]: a list of color maps, each containing
@@ -56,14 +58,16 @@ class BaseFigure(object):
                 pallette
 
         """
-        colors = [(86/255, 180/255, 233/255),
-                  (0, 158/255, 115/255),
-                  (204/255, 121/255, 167/255),
-                  (230/255, 159/255, 0),
-                  (213/255, 94/255, 0),
-                  (0, 114/255, 178/255),
-                  (213/255, 94/255, 0),
-                  (0, 0, 0)]
+        colors = [
+            (86/255, 180/255, 233/255),  # sky blue
+            (0, 158/255, 115/255),  # blueish green
+            (204/255, 121/255, 167/255),  # reddish purlple
+            (230/255, 159/255, 0),  # orange
+            (213/255, 94/255, 0),  # vermillion
+            (0, 114/255, 178/255),  # blue
+            (240/255, 228/255, 66/255),  # yellow
+            (0, 0, 0)  # black
+        ]
         n_bins = len(colors)
         color_maps = []
         for cut_point in range(n_bins):
