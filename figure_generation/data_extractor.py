@@ -151,9 +151,10 @@ class DataExtractor():
                 raise NoGpuError(f"Whoops, no gpus in filename {data_file}.")
             data_to_keep['num_gpus'] = int(num_gpus)
             # replacing total cost data
-            network_costs = self.extra_network_costs(
+            network_costs, egress_costs = self.extra_network_costs(
                 data_to_keep['num_images'], data_to_keep['time_elapsed'])
             data_to_keep['extra_network_costs'] = network_costs
+            data_to_keep['zone_egress_cost'] = egress_costs
             data_to_keep['total_node_and_networking_costs'] = \
                     data_to_keep['cpu_node_cost'] + \
                     data_to_keep['gpu_node_cost'] + \
@@ -314,26 +315,78 @@ class DataExtractor():
         return all_network_times
 
     @staticmethod
-    def extra_network_costs(img_num, run_duration_minutes):
+    def extra_network_costs(img_num, run_duration_minutes,
+                            images_per_job=100, num_zones=2):
         """ Compute network and storage costs for a given benchmarking run.
 
-        This method computes network and storage costs during the run due to Google Cloud
-        storage charges.
+        This method computes network and storage costs during the run due to
+        Google Cloud storage charges.
 
         Args:
             img_num (int): number of images uploaded in the current run
             run_duration_minutes (float): time from beginning to end of run
+            images_per_job (int): number of images in a zip job
+            num_zones (int): number of zones the cluster was deployed in
 
         Returns:
             total_fees (float): total fees imposed by Google Cloud over the life of the run
 
         """
-        total_storage_gb = 1.5*img_num/1000
-        run_duration_months = run_duration_minutes/24/30
+        jobs = img_num / images_per_job
 
-        total_storage_cost = 0.026*total_storage_gb*run_duration_months
-        download_fees = 0.004*img_num/10000
-        publication_fees = 0.05*img_num/10000
+        input_file_gb = 1.5 / 10 ** 3  # 1.5 MB input image
+        output_file_gb = 5.6 / 10 ** 6  # 5.6 kB output image
+        payload_size_gb = 11010048 / 10 ** 9  # the tiled float32 array
 
-        total_fees = total_storage_cost + download_fees + publication_fees
-        return total_fees
+        # General Storage Fees (per GB per month)
+        # https://cloud.google.com/storage/pricing#storage-pricing
+        storage_fees = (
+            .026 *  # storage rate per GB per month
+            img_num * (output_file_gb + input_file_gb) *  # total GB saved.
+            run_duration_minutes / 60 / 24 / 30  # run duration in months
+        )
+        # divide in half. first images are in bucket longer than final images.
+        storage_fees = storage_fees / 2
+
+        # Storage Network Fees
+        # https://cloud.google.com/storage/pricing#network-pricing
+        # Only user-uploaded and user-downloaded files count towards storage.
+        # egress. The intermediate files that are uploaded and downloaded are
+        # in a free tier of
+        storage_egress_fees = (
+            .12 *  # egress rate per GB
+            output_file_gb * img_num  # all final output images
+        )
+
+        # Storage Operations Fees (Class A vs Class B Operations)
+        # https://cloud.google.com/storage/pricing#operations-pricing
+        # Each zip job gets downloaded, and all its content is uploaded.
+        # Each content is then downloaded, processed, and the results uploaded
+        # then the zip consumer downloads all results and uploads the final zip
+        class_a_fees = (
+            0.05 / 10000 *  # class A rate
+            (2 * images_per_job + 1) *  # inputs and outputs + final zip
+            jobs  # number of zip files
+        )
+        class_b_fees = (
+            0.004 / 10000 *  # class B rate
+            (2 * images_per_job + 1) *  # inputs and outputs + original zip
+            jobs  # number of zip files
+        )
+        operations_fees = class_a_fees + class_b_fees
+
+        # Inter-Zone Egress Fees
+        # https://cloud.google.com/compute/all-pricing#network_pricing
+        # assuming requests are randomly routed to a server.
+        zone_egress_fees = (
+            0.01 *  # inter-zone egress rate, $0.01 per GB outgoing.
+            (1 - 1 / num_zones) *  # probability of inter-zone request.
+            img_num * (payload_size_gb * 3)  # GB of raw + model response
+        )
+
+        total_fees = (
+            storage_fees +
+            operations_fees +
+            storage_egress_fees
+        )
+        return total_fees, zone_egress_fees
