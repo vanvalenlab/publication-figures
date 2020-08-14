@@ -1,7 +1,9 @@
 [![Documentation Status](https://readthedocs.org/projects/deepcell-kiosk-figure-generation/badge/?version=latest)](https://deepcell-kiosk-figure-generation.readthedocs.io/en/latest/?badge=latest)
 
-Recreate the figures from https://www.biorxiv.org/content/10.1101/505032v3 in 4 easy steps!
+Recreate the figures from https://www.biorxiv.org/content/10.1101/505032v3 in 4-ish easy steps!
 
+The DeepCell Kiosk paper [(Bannon et al., 2020)](<https://www.biorxiv.org/content/10.1101/505032v3>) presents cost and runtime benchmarks for running a generic image segmentation pipeline on datasets of given sizes inside the DeepCell Kiosk with different sets of constraints (Fig. 1b).
+ 
 N.B.: Before following any of these steps, I'd recommend activating a Python `virtualenv`. It won't affect how easy it is to run this project, probably, but it will make your life easier after you've forgotten about this project and moved on to other Python packages.
 
 (To view API documentation for this project online, please go [here](https://deepcell-kiosk-figure-generation.readthedocs.io).)
@@ -16,9 +18,7 @@ Note that we did a significant amount of aesthetic primping in Illustrator to th
 
 ## Regenerating DeepCell Kiosk Paper Benchmarking Data
 
-The DeepCell Kiosk paper [(Bannon et al., 2020)](<https://www.biorxiv.org/content/10.1101/505032v4>) presents cost and runtime benchmarks for running a generic image segmentation pipeline on datasets of given sizes inside the DeepCell Kiosk with different sets of constraints (Fig. 1b).
- 
-This repository can produce those figures, but it expects a full battery of benchmarking output files from all run conditions. It will not produce any figures as-is without output from all runs. 
+This repository can produce the benchmarking figures from the paper, but it expects a full battery of benchmarking output files from all run conditions. It will not produce any figures as-is without output from all runs. 
  
 To generate a full battery of benchmarking run data (i.e., varying image numbers and GPU numbers), please complete the following benchmarking runs:
  
