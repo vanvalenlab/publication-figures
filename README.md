@@ -1,7 +1,5 @@
 [![Documentation Status](https://readthedocs.org/projects/deepcell-kiosk-figure-generation/badge/?version=latest)](https://deepcell-kiosk-figure-generation.readthedocs.io/en/latest/?badge=latest)
 
-Recreate the figures from https://www.biorxiv.org/content/10.1101/505032v3 in 4-ish easy steps!
-
 The DeepCell Kiosk paper [(Bannon et al., 2020)](<https://www.biorxiv.org/content/10.1101/505032v3>) presents cost and runtime benchmarks for running a generic image segmentation pipeline on datasets of given sizes inside the DeepCell Kiosk with different sets of constraints (Fig. 1b).
  
 N.B.: Before following any of these steps, I'd recommend activating a Python `virtualenv`. It won't affect how easy it is to run this project, probably, but it will make your life easier after you've forgotten about this project and moved on to other Python packages.
@@ -28,9 +26,9 @@ To generate a full battery of benchmarking run data (i.e., varying image numbers
      - 3 runs with 1 GPU and 100,000 images
      - 3 runs with 4 GPUs and 100,000 images
      - 3 runs with 8 GPUs and 100,000 images
-     - 1 run with 1 GPU and 1,000,000 images
-     - 1 run with 4 GPUs and 1,000,000 images
-     - 1 run with 8 GPUs and 1,000,000 images
+     - 3 run with 1 GPU and 1,000,000 images
+     - 3 run with 4 GPUs and 1,000,000 images
+     - 3 run with 8 GPUs and 1,000,000 images
  
 Then, follow the instructions in [Developer docs of the kiosk-console repo](https://deepcell-kiosk.readthedocs.io/en/master/DEVELOPER.html), in addition to the constraints outlined below in the `Benchmarking Figure Recreation Settings` section, to recreate the DeepCell Kiosk paper's benchmarking figures.
  
