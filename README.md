@@ -44,19 +44,3 @@ When recreating the figures from the DeepCell Kiosk paper, please observe the co
 4) Execute `python3 ./figure_generation/graph_creation.py`.
 
 Note that we did a significant amount of aesthetic primping in Illustrator to the figures generated from the included default data before we put them in the paper, but the data is all the same.
-
-## Documentation
-
-API documentation for the `publication-figures` repository can be viewed either online or locally.
-
-### Online Documentation
-
-To view API documentation for this project online, please go [here](https://deepcell-kiosk-figure-generation.readthedocs.io).
-
-### Building Documentation Locally
-
-If you want to create a local copy of the documentation for this project (instead of viewing the online version, linked above), follow these steps:
-1) First, install the package with the `docs` dependencies included: `pip install -e .[docs]`. (It's ok if you've already installed without the docs dependencies; there won't be any conflict if you use this command after that.)
-2) Move into the `docs` directory.
-3) Execute `sphinx-build -b html . ./_build/`. Assuming no errors were encountered, there should be a series of HTML files in the `docs/_build` directory that contain the project's documentation. To view them, simply open `docs/_build/index.html` with a web browser.
-N.B.: If step 3 hits an error, it probably indicates that you already had Sphinx installed, and you're just a little unlucky today. Make sure your system is using the Python3 version of `Sphinx`. If it isn't, delete those Sphinx files or edit your `PYTHONPATH` to point to the Python3 Sphinx version. (On Debian-based Linux distributions, you can delete these files by executing `apt-get remove python2-sphinx`.
