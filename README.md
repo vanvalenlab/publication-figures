@@ -51,7 +51,7 @@ Note that we did a significant amount of aesthetic primping in Illustrator to th
 
 To view API documentation for this project online, please go [here](https://deepcell-kiosk-figure-generation.readthedocs.io).
 
-# Building Documentation Locally
+### Building Documentation Locally
 
 If you want to create a local copy of the documentation for this project (instead of viewing the online version, linked above), follow these steps:
 1) First, install the package with the `docs` dependencies included: `pip install -e .[docs]`. (It's ok if you've already installed without the docs dependencies; there won't be any conflict if you use this command after that.)
