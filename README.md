@@ -47,6 +47,8 @@ Note that we did a significant amount of aesthetic primping in Illustrator to th
 
 ## Documentation
 
+API documentation for the `publication-figures` repository can be viewed either online or locally.
+
 ### Online Documentation
 
 To view API documentation for this project online, please go [here](https://deepcell-kiosk-figure-generation.readthedocs.io).
