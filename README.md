@@ -43,4 +43,4 @@ When recreating the figures from the DeepCell Kiosk paper, please observe the co
 3) Edit the global attributes in `figure_generation/graph_creation.py` to suit your tastes. (The global attributes should all be documented at the top of `figure_generation/graph_creation.py`.)
 4) Execute `python3 ./figure_generation/graph_creation.py`
 
-Note that we did a significant amount of aesthetic primping in Illustrator to the figures generated from the included default data before we put them in the paper, but the data is all the same.
+Note that we used Illustrator to make aesthetic improvements to the figures generated from this repository.
