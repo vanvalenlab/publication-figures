@@ -20,7 +20,7 @@ To generate a full battery of benchmarking run data (i.e., varying image numbers
 * 3 run with 4 GPUs and 1,000,000 images
 * 3 run with 8 GPUs and 1,000,000 images
  
-To do this, follow the instructions in [Developer docs of the kiosk-console repo](https://deepcell-kiosk.readthedocs.io/en/master/DEVELOPER.html), in addition to the constraints outlined below in the `Benchmarking Data Settings` subsection.
+To do this, follow the instructions in [Developer docs of the kiosk-console repo](https://deepcell-kiosk.readthedocs.io/en/master/DEVELOPER.html#benchmarking-the-deepcell-kiosk), in addition to the constraints outlined below in the `Benchmarking Data Settings` subsection.
  
 ### Benchmarking Data Settings
  
