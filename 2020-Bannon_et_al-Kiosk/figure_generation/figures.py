@@ -61,7 +61,7 @@ class BaseFigure(object):
         colors = [
             (86/255, 180/255, 233/255),  # sky blue
             (0, 158/255, 115/255),  # blueish green
-            (204/255, 121/255, 167/255),  # reddish purlple
+            (204/255, 121/255, 167/255),  # reddish purple
             (230/255, 159/255, 0),  # orange
             (213/255, 94/255, 0),  # vermillion
             (0, 114/255, 178/255),  # blue
