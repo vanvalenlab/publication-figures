@@ -327,7 +327,7 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
                                  'all_postprocess_times',
                                  'all_download_times']
         gpu_nums = [1, 4, 8]
-        replicates = 3
+        replicates = 1 if self.chosen_img_num == 1000000 else 3
         variable_lengths = []
         for variable_of_interest in variables_of_interest:
             for gpu_num in gpu_nums:
