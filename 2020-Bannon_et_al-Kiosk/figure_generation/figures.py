@@ -490,9 +490,9 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
                         cmap=self.color_maps[i])
                 # configure plot aesthetics
                 if "postprocess" in times[i]:
-                    plot_subtitle = "Postprcessing Runtime"
+                    plot_subtitle = "Post-Processing Runtime"
                 elif "prediction" in times[i]:
-                    plot_subtitle = "Tensorflow Serving Response Time"
+                    plot_subtitle = "TensorFlow Serving Response Time"
                 elif "network" in times[i]:
                     plot_subtitle = "Data Transfer Time"
                 axis.set_title(plot_subtitle)
