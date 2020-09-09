@@ -1152,14 +1152,16 @@ class OptimalGpuNumberFigure(BaseFigure):
 
         """
         # declare data for plotting
-        image_size_bits = 8000000 # (bits/image), 1000 pixels x 1000 pixels x 8 bits
-        bits_to_megabits_conversion_factor = 1000*1000 # bits/megabit
-        megabits_per_image = image_size_bits/bits_to_megabits_conversion_factor # megabits/image
-        prediction_speed = np.linspace(0.1, 100, num=1000) # images/sec
-        upload_speed = [10, 50, 250, 700, 1200, 1800, 2400, 3000] # Mb/s
+        imgx, imgy = 1280, 1080  # image size in pixels
+        image_bits = imgx * imgy * 8  # (bits/image) 8 bits/px
+        bits_per_megabit = 1000 * 1000
+        image_megabits = image_bits / bits_per_megabit  # Mb/image
+        prediction_speed = np.linspace(0.1, 100, num=1000)  # image/sec
+        # prediction_speed = 1 / prediction_speed  # sec/image
+        upload_speed = [10, 50, 250, 700, 1200, 1800, 2400, 3000]  # Mb/sec
         all_gpu_nums = np.zeros((len(prediction_speed), len(upload_speed)))
         for i, upload in enumerate(upload_speed):
-            gpus = [round((upload/ (prediction*megabits_per_image)) - 0.5)
+            gpus = [round((upload / (prediction*image_megabits)) - 0.5)
                     for prediction in prediction_speed]
             gpus = [gpu if gpu >= 1.0 else 1.0 for gpu in gpus]
             all_gpu_nums[:, i] = gpus
