@@ -425,31 +425,31 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
             # if we have data, choose x axis extent and, if necessary, xticks
             if self.chosen_img_num == 1000000:
                 if gpu == "1GPU":
-                    xmaxes = [5, 25, 3, 7]
+                    xmaxes = [5, 8, 2, 7]
                     custom_xticks = [0, 1, 2, 3, 4, 5]
                 elif gpu == "4GPU":
-                    xmaxes = [5, 120, 3, 2]
+                    xmaxes = [5, 60, 2, 2]
                     custom_xticks = [0, 1, 2, 3, 4, 5]
                 elif gpu == "8GPU":
-                    xmaxes = [5, 120, 3, 2]
+                    xmaxes = [5, 60, 2, 2]
                     custom_xticks = [0, 1, 2, 3, 4, 5]
             elif self.chosen_img_num == 100000:
                 if gpu == "1GPU":
-                    xmaxes = [14, 25, 3, 7]
+                    xmaxes = [5, 8, 2, 7]
                 elif gpu == "4GPU":
-                    xmaxes = [5, 120, 3, 2]
+                    xmaxes = [5, 60, 2, 2]
                     custom_xticks = [0, 1, 2, 3, 4, 5]
                 elif gpu == "8GPU":
-                    xmaxes = [5, 120, 3, 2]
+                    xmaxes = [5, 60, 2, 2]
                     custom_xticks = [0, 1, 2, 3, 4, 5]
             elif self.chosen_img_num == 10000:
                 if gpu == "1GPU":
-                    xmaxes = [6, 25, 3, 1.5]
+                    xmaxes = [5, 8, 2, 1.5]
                 elif gpu == "4GPU":
-                    xmaxes = [5, 120, 3, 1.5]
+                    xmaxes = [5, 60, 2, 1.5]
                     custom_xticks = [0, 1, 2, 3, 4, 5]
                 elif gpu == "8GPU":
-                    xmaxes = [5, 120, 3, 1.5]
+                    xmaxes = [5, 60, 2, 1.5]
                     custom_xticks = [0, 1, 2, 3, 4, 5]
 
             bin_widths = []
