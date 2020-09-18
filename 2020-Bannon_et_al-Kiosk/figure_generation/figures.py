@@ -61,7 +61,7 @@ class BaseFigure(object):
         colors = [
             (86/255, 180/255, 233/255),  # sky blue
             (0, 158/255, 115/255),  # blueish green
-            (204/255, 121/255, 167/255),  # reddish purlple
+            (204/255, 121/255, 167/255),  # reddish purple
             (230/255, 159/255, 0),  # orange
             (213/255, 94/255, 0),  # vermillion
             (0, 114/255, 178/255),  # blue
@@ -327,10 +327,7 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
                                  'all_postprocess_times',
                                  'all_download_times']
         gpu_nums = [1, 4, 8]
-        if self.chosen_img_num == 1000000:
-            replicates = 1
-        else:
-            replicates = 3
+        replicates = 1 if self.chosen_img_num == 1000000 else 3
         variable_lengths = []
         for variable_of_interest in variables_of_interest:
             for gpu_num in gpu_nums:
@@ -428,31 +425,31 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
             # if we have data, choose x axis extent and, if necessary, xticks
             if self.chosen_img_num == 1000000:
                 if gpu == "1GPU":
-                    xmaxes = [5, 25, 3, 7]
+                    xmaxes = [5, 8, 2, 7]
                     custom_xticks = [0, 1, 2, 3, 4, 5]
                 elif gpu == "4GPU":
-                    xmaxes = [5, 120, 3, 2]
+                    xmaxes = [5, 60, 2, 2]
                     custom_xticks = [0, 1, 2, 3, 4, 5]
                 elif gpu == "8GPU":
-                    xmaxes = [5, 120, 3, 2]
+                    xmaxes = [5, 60, 2, 2]
                     custom_xticks = [0, 1, 2, 3, 4, 5]
             elif self.chosen_img_num == 100000:
                 if gpu == "1GPU":
-                    xmaxes = [14, 25, 3, 7]
+                    xmaxes = [5, 8, 2, 7]
                 elif gpu == "4GPU":
-                    xmaxes = [5, 120, 3, 2]
+                    xmaxes = [5, 60, 2, 2]
                     custom_xticks = [0, 1, 2, 3, 4, 5]
                 elif gpu == "8GPU":
-                    xmaxes = [5, 120, 3, 2]
+                    xmaxes = [5, 60, 2, 2]
                     custom_xticks = [0, 1, 2, 3, 4, 5]
             elif self.chosen_img_num == 10000:
                 if gpu == "1GPU":
-                    xmaxes = [6, 25, 3, 1.5]
+                    xmaxes = [5, 8, 2, 1.5]
                 elif gpu == "4GPU":
-                    xmaxes = [5, 120, 3, 1.5]
+                    xmaxes = [5, 60, 2, 1.5]
                     custom_xticks = [0, 1, 2, 3, 4, 5]
                 elif gpu == "8GPU":
-                    xmaxes = [5, 120, 3, 1.5]
+                    xmaxes = [5, 60, 2, 1.5]
                     custom_xticks = [0, 1, 2, 3, 4, 5]
 
             bin_widths = []
@@ -493,11 +490,11 @@ class ImageTimeVsGpuFigure(BaseEmpiricalFigure):
                         cmap=self.color_maps[i])
                 # configure plot aesthetics
                 if "postprocess" in times[i]:
-                    plot_subtitle = "Postprcessing Runtime"
+                    plot_subtitle = "Post-Processing"
                 elif "prediction" in times[i]:
-                    plot_subtitle = "Tensorflow Serving Response Time"
+                    plot_subtitle = "TensorFlow Serving Response"
                 elif "network" in times[i]:
-                    plot_subtitle = "Data Transfer Time"
+                    plot_subtitle = "Data Transfer"
                 axis.set_title(plot_subtitle)
                 if i == 0:
                     axis.set_ylabel(self.y_label)
@@ -1155,14 +1152,16 @@ class OptimalGpuNumberFigure(BaseFigure):
 
         """
         # declare data for plotting
-        image_size_bits = 8000000 # (bits/image), 1000 pixels x 1000 pixels x 8 bits
-        bits_to_megabits_conversion_factor = 1000*1000 # bits/megabit
-        megabits_per_image = image_size_bits/bits_to_megabits_conversion_factor # megabits/image
-        prediction_speed = np.linspace(0.1, 100, num=1000) # images/sec
-        upload_speed = [10, 50, 250, 700, 1200, 1800, 2400, 3000] # Mb/s
+        imgx, imgy = 1280, 1080  # image size in pixels
+        image_bits = imgx * imgy * 8  # (bits/image) 8 bits/px
+        bits_per_megabit = 1000 * 1000
+        image_megabits = image_bits / bits_per_megabit  # Mb/image
+        prediction_speed = np.linspace(0.1, 100, num=1000)  # image/sec
+        # prediction_speed = 1 / prediction_speed  # sec/image
+        upload_speed = [10, 50, 250, 700, 1200, 1800, 2400, 3000]  # Mb/sec
         all_gpu_nums = np.zeros((len(prediction_speed), len(upload_speed)))
         for i, upload in enumerate(upload_speed):
-            gpus = [round((upload/ (prediction*megabits_per_image)) - 0.5)
+            gpus = [round((upload / (prediction*image_megabits)) - 0.5)
                     for prediction in prediction_speed]
             gpus = [gpu if gpu >= 1.0 else 1.0 for gpu in gpus]
             all_gpu_nums[:, i] = gpus
