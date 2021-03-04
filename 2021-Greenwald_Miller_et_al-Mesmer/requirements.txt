@@ -1,0 +1,2 @@
+git+https://github.com/angelolab/ark-analysis.git@29d2c4a2f6073567c6bfe1710d62079e3c121a36
+deepcell_toolbox
