@@ -20,7 +20,7 @@ import matplotlib
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 
-base_dir = '/Users/noahgreenwald/Downloads/publications_data_folder/'
+base_dir = 'path_to_zip_folder/publications_data_folder/'
 plot_dir = base_dir + 'plots'
 data_dir = base_dir + '/phenotyping_data/pred_labels/'
 

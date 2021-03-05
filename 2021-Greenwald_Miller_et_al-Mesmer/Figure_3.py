@@ -25,7 +25,7 @@ matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 
 # Figure 3a overlays
-base_dir = '/Users/noahgreenwald/Downloads/publications_data_folder/'
+base_dir = 'path_to_zip_folder/publications_data_folder/'
 plot_dir = base_dir + 'plots'
 
 # this code requires TissueNet to run, which will be released following publication

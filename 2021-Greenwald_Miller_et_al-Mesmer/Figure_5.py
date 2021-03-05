@@ -25,7 +25,7 @@ from matplotlib.colors import ListedColormap
 import figures
 from ark.segmentation import marker_quantification
 
-base_dir = '/Users/noahgreenwald/Downloads/publications_data_folder/'
+base_dir = 'path_to_zip_folder/publications_data_folder/'
 plot_dir = base_dir + 'plots'
 data_dir = base_dir + '/decidua/'
 
