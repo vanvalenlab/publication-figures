@@ -339,7 +339,7 @@ for i in range(len(combined_category_list)):
     io.imsave(os.path.join(crop_dir, 'segmentation_img_overlay.png'), overlay_img)
 
     for channel in ['H3', 'VIM', 'CD3', 'CD56', 'CD14', 'HLAG']:
-        full_path = os.path.join(data_dir, '20210103_comparison', current_fov, channel + '.tiff')
+        full_path = os.path.join(data_dir, current_fov, channel + '.tiff')
         save_path = os.path.join(crop_dir, channel + '.tiff')
         figures.save_image_crops(full_path, centroid_row, centroid_col, 40, save_path)
 
