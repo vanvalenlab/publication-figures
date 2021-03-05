@@ -808,3 +808,13 @@ def compute_cells_per_split(split_dict, keys):
         cell_count_list.append(cell_count)
 
     return cell_count_list
+
+
+def save_image_crops(full_path, centroid_row, centroid_col, offset, save_path):
+    current_img = io.imread(full_path)
+
+    cropped_image = current_img[centroid_row - offset: centroid_row + offset,
+                    centroid_col - offset: centroid_col + offset]
+    if np.max(cropped_image) > 0:
+        cropped_image = cropped_image / np.max(cropped_image)
+    io.imsave(save_path, cropped_image.astype('float32'))

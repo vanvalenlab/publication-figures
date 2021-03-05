@@ -1,30 +1,20 @@
 import os
-import shutil
 
 import pandas as pd
-import numpy as np
 import xarray as xr
 import skimage.io as io
-import matplotlib.pyplot as plt
 import seaborn as sns
 
-from ark.utils.load_utils import load_imgs_from_tree, load_imgs_from_dir
-from ark.utils import data_utils, io_utils, load_utils
-from ark.utils.io_utils import list_folders, list_files
-from ark.segmentation.marker_quantification import create_marker_count_matrices, compute_marker_counts
+from ark.utils.load_utils import load_imgs_from_dir
+from ark.utils import io_utils
+from ark.segmentation.marker_quantification import create_marker_count_matrices
 from skimage.segmentation import find_boundaries
 import figures
-from ark.utils import segmentation_utils
 from matplotlib.colors import ListedColormap
 
-from skimage import morphology
-
-from skimage.measure import regionprops_table
-from scipy.stats import pearsonr
 
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.stats as st
 
 import matplotlib
 matplotlib.rcParams['pdf.fonttype'] = 42
