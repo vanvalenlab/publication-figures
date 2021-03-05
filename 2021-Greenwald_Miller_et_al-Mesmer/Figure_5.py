@@ -353,8 +353,15 @@ overlay_img_row_coords = [[0, 500], [0, 1000], [1400, 1800], [0, 500], [1000, 15
 overlay_img_col_coords = [[0, 500], [0, 1000], [0, 400], [1100, 1600], [0, 500],
                         [100, 600], [200, 700], [0, 500], [700, 1200]]
 
+plasma_cmap = cm.get_cmap('plasma', 256)
+colors = plasma_cmap(np.linspace(0, 1, 256))
+black = np.array([0, 0, 0, 1])
+colors[0:1, :] = black
+metric_cmap = ListedColormap(colors)
+
+
 for i in range(len(metric_list)):
-    save_path = os.path.join(data_dir,  'selected_fovs_plots', 'color_overlay_crop_{}_{}.png'.format(i, metric_list[i]))
+    save_path = os.path.join(plot_dir, 'Figure_5e_{}_{}.png'.format(i, metric_list[i]))
 
     current_fov = overlay_img_list[i]
     current_label = segmentation_labels_selected.loc[current_fov, :, :, 'whole_cell'].values
@@ -365,7 +372,7 @@ for i in range(len(metric_list)):
     values += 0.01
     img = figures.label_image_by_value(current_label, current_cluster['label'].values, values)
     row_coords, col_coords = overlay_img_row_coords[i], overlay_img_col_coords[i]
-    img = newcmp(img[row_coords[0]:row_coords[1], col_coords[0]:col_coords[1]])
+    img = metric_cmap(img[row_coords[0]:row_coords[1], col_coords[0]:col_coords[1]])
     io.imsave(save_path, img)
 
 
@@ -375,11 +382,9 @@ current_label = segmentation_labels_selected.loc[example_fov, :, :, 'whole_cell'
 current_cluster = cluster_df_selected.loc[cluster_df_selected['point'] == example_fov, :]
 img = figures.label_image_by_value(current_label, current_cluster['label'].values, current_cluster['convex_hull_resid'].values)
 fig, ax = plt.subplots()
-pos = ax.imshow(img, cmap=newcmp)
+pos = ax.imshow(img, cmap=metric_cmap)
 fig.colorbar(pos)
 plt.savefig(os.path.join(plot_dir, 'Figure_4e_colorbar.pdf'))
-
-
 
 
 
@@ -390,24 +395,20 @@ cluster_fit = KMeans(n_clusters=4).fit(kmeans_data_scaled)
 cluster_df_selected['kmeans_labels'] = cluster_fit.labels_
 
 cluster_labels = np.zeros(len(cluster_df_selected))
-cluster_labels[cluster_df_selected['kmeans_labels'] == 1] = 1
-cluster_labels[cluster_df_selected['kmeans_labels'] == 4] = 2
-cluster_labels[cluster_df_selected['kmeans_labels'] == 2] = 3
-cluster_labels[cluster_df_selected['kmeans_labels'] == 3] = 4
-
-
+cluster_labels[cluster_df_selected['kmeans_labels'] == 2] = 1
+cluster_labels[cluster_df_selected['kmeans_labels'] == 3] = 2
+cluster_labels[cluster_df_selected['kmeans_labels'] == 1] = 3
+cluster_labels[cluster_df_selected['kmeans_labels'] == 0] = 4
 cluster_df_selected['kmeans_labels'] = cluster_labels
-cluster_df_selected.to_csv(os.path.join(data_dir, 'annotated_cell_table_with_nuc_all_kmeans.csv'), index=False)
-cluster_df_selected = pd.read_csv(os.path.join(data_dir, 'annotated_cell_table_with_nuc_selected_kmeans.csv'))
-
 
 
 # Figure 5f
-heatmap_vals = pd.DataFrame(np.zeros((4, len(umap_metrics))), columns=umap_metrics, index=range(0, 4))
-for i in range(0, 4):
+heatmap_vals = pd.DataFrame(np.zeros((4, len(umap_metrics))), columns=umap_metrics, index=range(1, 5))
+for i in range(1, 5):
     # kmeans_subset = kmeans_data_scaled[cluster_labels == i]
     kmeans_subset = kmeans_data_scaled[cluster_df_selected['kmeans_labels'] == i]
-    heatmap_vals.loc[i, :] = np.mean(kmeans_subset, axis=0)
+
+    heatmap_vals.loc[i, :] = np.nanmean(kmeans_subset, axis=0)
 
 heatmap_vals = heatmap_vals - np.min(heatmap_vals)
 heatmap_vals = heatmap_vals / np.max(heatmap_vals)
@@ -415,42 +416,6 @@ sns.clustermap(heatmap_vals, cmap='Greys')
 plt.savefig(os.path.join(plot_dir, 'Figure_5f.pdf'))
 
 # Figure 5g
-for i in range(1, 5):
-    cluster_idx = cluster_df_selected_nucleated['kmeans_labels'] == i
-
-    cluster_folder = os.path.join(data_dir, 'selected_fovs_plots/Figure_4_cluster_{}_examples'.format(i))
-    if not os.path.exists(cluster_folder):
-        os.makedirs(cluster_folder)
-
-    for j in range(600, 650):
-        cell = np.where(cluster_idx)[0][j]
-        fov, cell_id, centroid_row, centroid_col, nuc_id = cluster_df_selected_nucleated.iloc[cell][
-            ['point', 'label', 'centroid-0', 'centroid-1', 'label_nuclear']]
-        if 100 < centroid_row < 1900 and 100 < centroid_col < 1900:
-                        centroid_row = int(centroid_row)
-            centroid_col = int(centroid_col)
-
-            current_label = segmentation_labels_selected.loc[fov, :, :, 'whole_cell'].values
-            current_label_crop = current_label[centroid_row - 40: centroid_row + 40,
-                                 centroid_col - 40: centroid_col + 40]
-            mask = current_label_crop == cell_id
-
-            current_nuc_label = nuc_labels_selected.loc[fov, :, :, 'nuclear'].values
-            offset = 40
-            current_nuc_label_crop = current_nuc_label[centroid_row - offset: centroid_row + offset,
-                                     centroid_col - offset: centroid_col + offset]
-
-            nuc_mask = current_nuc_label_crop == nuc_id
-            nuc_segmentation_img = np.zeros((80, 80), dtype='uint8')
-            nuc_segmentation_img[nuc_mask] = 255
-
-            overlay_img = np.zeros((80, 80), dtype='uint8')
-            overlay_img[mask] = 255
-            overlay_img[nuc_mask] = 122
-
-            io.imsave(os.path.join(cluster_folder, 'cell_{}_outline.tiff'.format(j)), mask)
-            io.imsave(os.path.join(cluster_folder, 'cell_{}_overlay.tiff'.format(j)), overlay_img)
-
 # list of selected image crops for each cluster
 cluster_info = {'cluster_1':
                     {'fov_list': ['18_31782_5_7', '18_31782_5_7', '18_31782_5_7', '18_31782_5_7',
@@ -489,37 +454,6 @@ cluster_info = {'cluster_1':
                                       443, 574, 613, 624, 626,
                                       647, 648]}}
 
-cluster_1_fov = ['18_31782_5_7', '18_31782_5_7', '18_31782_5_7', '18_31782_5_7', '18_31782_5_7',
-                 '18_31782_5_7', '18_31782_5_7', '18_31782_5_7', '18_31782_5_7', '18_31782_5_7',
-                 '18_31782_5_7', '18_31782_5_7']
-cluster_1_cell_id = [1120, 1177, 1229, 1254, 1334,
-                     1385, 1457, 1904, 2008, 2054,
-                     2183, 2366]
-
-cluster_2_fov = ['16_31762_20_9', '16_31762_20_9', '16_31762_20_9', '16_31762_20_9', '16_31762_20_9',
-                 '16_31762_20_9', '16_31762_20_9', '16_31762_20_9', '16_31762_20_9', '16_31762_20_9',
-                 '16_31762_20_9', '16_31762_20_9']
-cluster_2_cell_id = [2095, 2119, 2239, 2246, 2249,
-                     2255, 2290, 2317, 2436, 2438,
-                     2459, 2484]
-
-
-cluster_3_fov = ['6_31727_15_3', '6_31727_15_3', '6_31727_15_3', '6_31727_15_3', '6_31727_15_3',
-                 '6_31727_15_3', '6_31727_15_3', '6_31727_15_3', '6_31727_15_3', '6_31727_15_3',
-                 '6_31727_15_3', '6_31727_15_3']
-cluster_3_cell_id = [1911, 1923, 1941, 1953, 1956,
-                     1969, 1980, 2010, 2027, 2028,
-                     2035, 2040]
-
-
-cluster_4_fov = ['16_31762_20_9', '16_31762_20_9', '16_31762_20_9', '16_31762_20_9', '16_31762_20_9',
-                 '16_31762_20_9', '16_31762_20_9', '16_31762_20_9', '16_31762_20_9', '16_31762_20_9',
-                 '16_31762_20_9', '16_31762_20_9']
-cluster_4_cell_id = [340, 360, 372, 400, 429,
-                     443, 574, 613, 624, 626,
-                     647, 648]
-
-
 cluster_colors = {'cluster_1': [252 / 256, 103 / 256, 110 / 256],
                    'cluster_2': [106 / 255, 103 / 256, 206 / 256],
                     'cluster_3': [23 / 256, 157 / 256, 186 / 256],
@@ -527,7 +461,7 @@ cluster_colors = {'cluster_1': [252 / 256, 103 / 256, 110 / 256],
 
 # save cluster segmentations with nuclear overlay
 for cluster in ['cluster_1', 'cluster_2', 'cluster_3', 'cluster_4']:
-    crop_dir = os.path.join(data_dir, 'selected_fovs_plots/Figure_4g_{}'.format(cluster))
+    crop_dir = os.path.join(plot_dir, 'Figure_5g_{}'.format(cluster))
     if not os.path.exists(crop_dir):
         os.makedirs(crop_dir)
 
@@ -575,6 +509,24 @@ for cluster in ['cluster_1', 'cluster_2', 'cluster_3', 'cluster_4']:
         io.imsave(os.path.join(crop_dir, 'segmentation_img_overlay_{}.png'.format(i)), overlay_img)
         io.imsave(os.path.join(crop_dir, 'segmentation_img_overlay_rgb_{}.png'.format(i)), rgb_img)
 
+#Figure 5h
+kmeans_cmap_vals = [[0, 0, 0],
+                    [252 / 256, 103 / 256, 110 / 256],
+                    [106 / 255, 103 / 256, 206 / 256],
+                    [23 / 256, 157 / 256, 186 / 256],
+                    [55 / 256, 197 / 256, 151 / 256]]
+
+kmeans_cmap = ListedColormap(kmeans_cmap_vals)
+
+example_fov = '6_31725_8_2'
+current_label = segmentation_labels_selected.loc[example_fov, :, :, 'whole_cell'].values
+current_cluster = cluster_df_selected.loc[cluster_df_selected['point'] == example_fov, :]
+img = figures.label_image_by_value(current_label, current_cluster['label'].values, current_cluster['kmeans_labels'].values)
+
+
+img_cm = kmeans_cmap(img / 4)
+io.imsave(os.path.join(data_dir, 'plots/Figure_5h_example_early_cropped.png'), img_cm[800:2000, 800:2000])
+io.imsave(os.path.join(data_dir, 'plots/Figure_5h_example_early.png'), img_cm)
 
 
 # Figure 5i
@@ -587,80 +539,6 @@ img_cm = kmeans_cmap(img / 4)
 io.imsave(os.path.join(data_dir, 'plots/Figure_5i_example_late.png'), img_cm)
 io.imsave(os.path.join(data_dir, 'plots/Figure_5i_example_late_cropped.png'), img_cm[600:1800, 600:1800])
 
-
-#Figure 5h
-example_fov = '6_31725_8_2'
-current_label = segmentation_labels_selected.loc[example_fov, :, :, 'whole_cell'].values
-current_cluster = cluster_df_selected.loc[cluster_df_selected['point'] == example_fov, :]
-img = figures.label_image_by_value(current_label, current_cluster['label'].values, current_cluster['kmeans_labels'].values)
-
-
-img_cm = kmeans_cmap(img / 4)
-io.imsave(os.path.join(data_dir, 'plots/Figure_5h_example_early_cropped.png'), img_cm[800:2000, 800:2000])
-io.imsave(os.path.join(data_dir, 'plots/Figure_5h_example_early.png'), img_cm)
-
-
-# Set1
-kmeans_cmap_vals = [[0, 0, 0],
-                    [180 / 256, 221 / 256, 212 / 256],
-                    [107 / 256, 57 / 256, 41 / 256],
-                    [0, 0, 1],
-                    [250 / 256, 33 / 256, 127 / 256]]
-kmeans_cmap = ListedColormap(kmeans_cmap_vals)
-
-
-# Erin 1
-kmeans_cmap_vals = [[0, 0, 0],
-                    [0 / 256, 140 / 256, 249 / 256],
-                    [184 / 256, 0 / 256, 88 / 256],
-                    [0, 167 / 256, 108 / 256],
-                    [255 / 256, 92 / 256, 77 / 256]]
-kmeans_cmap = ListedColormap(kmeans_cmap_vals)
-
-# Erin 2
-kmeans_cmap_vals = [[0, 0, 0],
-                    [0 / 256, 63 / 256, 92 / 256],
-                    [122 / 256, 81 / 256, 149 / 256],
-                    [239 / 255, 86 / 256, 117 / 256],
-                    [255 / 256, 166 / 256, 0 / 256]]
-kmeans_cmap = ListedColormap(kmeans_cmap_vals)
-
-
-# Erin 3
-kmeans_cmap_vals = [[0, 0, 0],
-                    [55 / 256, 197 / 256, 151 / 256],
-                    [23 / 256, 157 / 256, 186 / 256],
-                    [106 / 255, 103 / 256, 206 / 256],
-                    [252 / 256, 103 / 256, 110 / 256]]
-
-# 20210118 color scheme
-kmeans_cmap_vals = [[1, 1, 1],
-                    [252 / 256, 103 / 256, 110 / 256],
-                    [23 / 256, 157 / 256, 186 / 256],
-                    [106 / 255, 103 / 256, 206 / 256],
-                    [55 / 256, 197 / 256, 151 / 256]]
-
-# 20210131 color scheme
-kmeans_cmap_vals = [[0, 0, 0],
-                    [252 / 256, 103 / 256, 110 / 256],
-                    [106 / 255, 103 / 256, 206 / 256],
-                    [23 / 256, 157 / 256, 186 / 256],
-                    [55 / 256, 197 / 256, 151 / 256]]
-
-kmeans_cmap = ListedColormap(kmeans_cmap_vals)
-
-
-test_cm = cm.tab20b
-test_cm(0)
-
-test_img = kmeans_cmap(img / 4)
-outline = find_boundaries(current_label, mode='inner')
-test_img[outline > 0, :] = 0
-test_img[outline, 3] = 1
-io.imshow(test_img)
-
-
-# identify ROIs for kmeans overlay images
 
 rows = [[930, 1130], [1300, 1500], [1750, 1950]]
 cols = [[960, 1160], [1500, 1700], [1300, 1500]]
