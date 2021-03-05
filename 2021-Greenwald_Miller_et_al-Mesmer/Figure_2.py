@@ -21,7 +21,7 @@ matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 
 base_dir = '/Users/noahgreenwald/Downloads/publications_data_folder/'
-plot_dir = base_dir + '/plots'
+plot_dir = base_dir + '/plots/'
 benchmarking_dir = base_dir + '/benchmarking_accuracy/'
 
 # create single df to hold the accuracy metrics for all models
