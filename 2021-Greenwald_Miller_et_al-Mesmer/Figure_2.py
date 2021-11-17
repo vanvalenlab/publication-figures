@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import matplotlib.pyplot as plt
 import skimage.io as io
@@ -16,6 +17,8 @@ import figures
 from deepcell_toolbox.metrics import Metrics
 import matplotlib
 from skimage.segmentation import find_boundaries
+from deepcell_toolbox.deep_watershed import deep_watershed_mibi
+from ark.utils.io_utils import list_files
 
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
@@ -23,15 +26,163 @@ matplotlib.rcParams['ps.fonttype'] = 42
 base_dir = 'path_to_zip_folder/publications_data_folder/'
 plot_dir = base_dir + '/plots/'
 benchmarking_dir = base_dir + '/benchmarking_accuracy/'
+npz_dir = os.path.join(base_dir, 'test_split_predictions')
+
+## postprocess CellPose, StarDist, and Ilastik results ##
+# Ilastik first
+ilastik_dir = os.path.join(benchmarking_dir, 'Ilastik_predictions')
+
+# load predictions into single npz
+for seed in ['1', '2', '3']:
+    seed_dir = os.path.join(ilastik_dir, 'seed_{}_test_predictions'.format(seed), 'predictions_interior')
+    filenum = len(os.listdir(seed_dir))
+    output = np.zeros((filenum, 256, 256, 1))
+    for i in range(output.shape[0]):
+        zero_filled = str(i).zfill(4)
+        img = io.imread(os.path.join(ilastik_dir,'seed_{}_test_predictions'.format(seed), 'predictions_interior', 'test_image_{}_Probabilities.tif'.format(zero_filled)))
+        output[i, :, :, 0] = img
+    np.savez_compressed(os.path.join(ilastik_dir, 'split_{}_combined_preds.npz'.format(seed)),
+                        y=output)
+
+# postprocess probabilities to masks
+for seed in ['1', '2', '3']:
+    preds = np.load(os.path.join(ilastik_dir, 'split_{}_combined_preds.npz'.format(seed)))
+    pred_dict = {'pixelwise-interior': preds['y']}
+    masks = deep_watershed_mibi(pred_dict, maxima_model='pixelwise-interior', fill_holes_threshold=15,
+                                small_objects_threshold=15)
+    np.savez_compressed(os.path.join(ilastik_dir, 'split_{}_combined_masks.npz'.format(seed)),
+                        y=masks)
+
+# benchmark Ilastik output
+metrics = {}
+for seed in ['1', '2', '3']:
+    true_dict = np.load(os.path.join(npz_dir, '20201018_multiplex_seed_{}_test_256x256.npz'.format(seed)))
+    true_labels = true_dict['y']
+    pred_labels = np.load(os.path.join(ilastik_dir, 'split_{}_combined_masks.npz'.format(seed)))['y']
+
+    for i in range(true_labels.shape[0]):
+        img = true_labels[i, :, :, 0]
+        img = label(img)
+        true_labels[i, :, :, 0] = img
+
+    for i in range(pred_labels.shape[0]):
+        img = pred_labels[i, :, :, 0]
+        img = label(img)
+        pred_labels[i, :, :, 0] = img
+
+    db = figures.DatasetBenchmarker(y_true=true_labels,
+                                    y_pred=pred_labels,
+                                    tissue_list=true_dict['tissue_list'],
+                                    platform_list=true_dict['platform_list'],
+                                    model_name='cellpose')
+    tissue_stats, platform_stats = db.benchmark()
+
+    jacc = figures.calc_jaccard_index_object(db.metrics.predictions, true_labels, pred_labels)
+    jacc = np.concatenate(jacc)
+    jacc_mean = np.mean(jacc)
+    metrics[seed] = {'tissue_stats': tissue_stats, 'platform_stats': platform_stats,
+                     'jacc': jacc_mean}
+
+np.savez_compressed(os.path.join(benchmarking_dir, 'ilastik_metrics_jacc.npz'), **metrics)
+
+
+# Retrained cellpose
+# copy predictions
+cellpose_dir = '/Users/noahgreenwald/Downloads/publications_data_folder/benchmarking_accuracy/cellpose_predictions'
+download_dir = '/Users/noahgreenwald/Downloads/publications_data_folder/benchmarking_accuracy/cellpose_predictions_full'
+for seed in ['1', '2', '3']:
+    save_dir = os.path.join(cellpose_dir, 'split{}'.format(seed))
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    masks = list_files(download_dir + '/split{}'.format(seed), 'masks')
+    for mask in masks:
+        shutil.move(os.path.join(download_dir, 'split{}'.format(seed), mask),
+                    os.path.join(save_dir, mask))
+
+# load predictions into single npz
+for seed in ['1', '2', '3']:
+    output_shape = np.load(npz_dir + '/20201018_multiplex_seed_{}_test_256x256.npz'.format(seed))['y'].shape
+    output = np.zeros(output_shape)
+    for i in range(output.shape[0]):
+        zero_filled = str(i).zfill(4)
+        img = io.imread(os.path.join(cellpose_dir, 'split{}/{}_img_cp_masks.tif'.format(seed, zero_filled)))
+        output[i, :, :, 0] = img
+    np.savez_compressed(os.path.join(cellpose_dir, 'split_{}_combined_masks.npz'.format(seed)),
+                        y=output)
+
+# benchmark cellpose output
+metrics = {}
+for seed in ['2', '3']:
+    true_dict = np.load(os.path.join(npz_dir, '20201018_multiplex_seed_{}_test_256x256.npz'.format(seed)))
+    true_labels = true_dict['y']
+    pred_labels = np.load(os.path.join(cellpose_dir, 'split_{}_combined_masks.npz'.format(seed)))['y']
+
+    for i in range(true_labels.shape[0]):
+        img = true_labels[i, :, :, 0]
+        img = label(img)
+        true_labels[i, :, :, 0] = img
+
+    for i in range(pred_labels.shape[0]):
+        img = pred_labels[i, :, :, 0]
+        img = label(img)
+        pred_labels[i, :, :, 0] = img
+
+    db = figures.DatasetBenchmarker(y_true=true_labels,
+                            y_pred=pred_labels,
+                            tissue_list=true_dict['tissue_list'],
+                            platform_list=true_dict['platform_list'],
+                            model_name='cellpose')
+    tissue_stats, platform_stats = db.benchmark()
+
+    jacc = figures.calc_jaccard_index_object(db.metrics.predictions, true_labels, pred_labels)
+    jacc = np.concatenate(jacc)
+    jacc_mean = np.mean(jacc)
+    metrics[seed] = {'tissue_stats': tissue_stats, 'platform_stats': platform_stats,
+                     'jacc': jacc_mean}
+
+np.savez_compressed(os.path.join(benchmarking_dir, 'cellpose_retrained_metrics_jacc.npz'), **metrics)
+
+# benchmark Stardist output
+stardist_dir = os.path.join(benchmarking_dir, 'StarDist_Predictions')
+metrics = {}
+for seed in ['1', '2', '3']:
+    true_dict = np.load(os.path.join(npz_dir, '20201018_multiplex_seed_{}_test_256x256.npz'.format(seed)))
+    true_labels = true_dict['y']
+    pred_labels = np.load(os.path.join(stardist_dir, '20201018_multiplex_seed_{}_test_pred.npz'.format(seed)))['arr_0']
+
+    for i in range(true_labels.shape[0]):
+        img = true_labels[i, :, :, 0]
+        img = label(img)
+        true_labels[i, :, :, 0] = img
+
+    for i in range(pred_labels.shape[0]):
+        img = pred_labels[i, :, :, 0]
+        img = label(img)
+        pred_labels[i, :, :, 0] = img
+
+    db = figures.DatasetBenchmarker(y_true=true_labels,
+                                    y_pred=pred_labels,
+                                    tissue_list=true_dict['tissue_list'],
+                                    platform_list=true_dict['platform_list'],
+                                    model_name='cellpose')
+    tissue_stats, platform_stats = db.benchmark()
+
+    jacc = figures.calc_jaccard_index_object(db.metrics.predictions, true_labels, pred_labels)
+    jacc = np.concatenate(jacc)
+    jacc_mean = np.mean(jacc)
+    metrics[seed] = {'tissue_stats': tissue_stats, 'platform_stats': platform_stats,
+                     'jacc': jacc_mean}
+np.savez_compressed(os.path.join(benchmarking_dir, 'stardist_retrained_metrics_jacc.npz'), **metrics)
 
 # create single df to hold the accuracy metrics for all models
 
 files = ['retinamask_metrics_jacc.npz', 'nuclear_metrics_jacc.npz', 'MDC_metrics_jacc.npz',
          'featurenet_metrics_jacc.npz', 'cellpose_metrics_jacc.npz', 'featurenet_metrics_samir_jacc.npz',
-         'stardist_metrics_jacc.npz']
+         'stardist_metrics_jacc.npz', 'stardist_retrained_metrics_jacc.npz', 'ilastik_metrics_jacc.npz',
+         'cellpose_retrained_metrics_jacc.npz']
 
 names = ['RetinaMask', 'Mesmer_Nuclear', 'Mesmer', 'FeatureNet_Retrained', 'CellPose', 'FeatureNet',
-         'StarDist']
+         'StarDist', 'StarDist_TissueNet', 'illastik', 'CellPose_TissueNet']
 metrics, scores, models = [], [], []
 for i in range(len(files)):
     current_metrics = np.load(benchmarking_dir + files[i], allow_pickle=True)
@@ -124,12 +275,15 @@ plt.savefig(os.path.join(plot_dir, 'Figure_2c.pdf'))
 # Figure S2d
 fig, ax = plt.subplots()
 ax = sns.barplot(data=plotting_df, x='model', y='score', hue='metric',
-                order=['Mesmer', 'Mesmer_Nuclear', 'FeatureNet_Retrained', 'RetinaMask', 'FeatureNet', 'StarDist', 'CellPose'],
+                order=['Mesmer', 'StarDist_TissueNet', 'CellPose_TissueNet', 'Mesmer_Nuclear',
+                       'FeatureNet_Retrained', 'RetinaMask', 'illastik', 'FeatureNet',
+                       'StarDist', 'CellPose'],
                  hue_order=['precision', 'recall', 'jaccard'],
                  color='grey', ci=None)
 ax.get_legend().remove()
 ax = sns.swarmplot(data=plotting_df, x='model', y='score', hue='metric',
-                   order=['Mesmer', 'Mesmer_Nuclear', 'FeatureNet_Retrained', 'RetinaMask',
+                   order=['Mesmer', 'StarDist_TissueNet', 'CellPose_TissueNet','Mesmer_Nuclear',
+                          'FeatureNet_Retrained', 'RetinaMask', 'illastik',
                           'FeatureNet', 'StarDist', 'CellPose'],
                    hue_order=['precision', 'recall', 'jaccard'],
                    color='grey', dodge=True, alpha=0.5)
@@ -144,14 +298,16 @@ plt.savefig(os.path.join(plot_dir, 'Figure_S2d.pdf'))
 # Figure S2e
 fig, ax = plt.subplots()
 ax = sns.barplot(data=plotting_df, x='model', y='score', hue='metric',
-                order=['Mesmer', 'Mesmer_Nuclear', 'FeatureNet_Retrained', 'RetinaMask', 'FeatureNet', 'StarDist', 'CellPose'],
-
+                order=['Mesmer', 'StarDist_TissueNet', 'CellPose_TissueNet', 'Mesmer_Nuclear',
+                       'FeatureNet_Retrained', 'RetinaMask', 'illastik', 'FeatureNet',
+                       'StarDist', 'CellPose'],
                  hue_order=['missed_detections_normalized_by_true_cells', 'gained_detections_normalized_by_true_cells'],
                  color='grey', ci=None)
 
 ax = sns.swarmplot(data=plotting_df, x='model', y='score', hue='metric',
-                   order=['Mesmer', 'Mesmer_Nuclear', 'FeatureNet_Retrained', 'RetinaMask',
-                          'FeatureNet', 'StarDist', 'CellPose'],
+                   order=['Mesmer', 'StarDist_TissueNet', 'CellPose_TissueNet', 'Mesmer_Nuclear',
+                       'FeatureNet_Retrained', 'RetinaMask', 'illastik', 'FeatureNet',
+                       'StarDist', 'CellPose'],
                    hue_order=['missed_detections_normalized_by_true_cells', 'gained_detections_normalized_by_true_cells'],
                    color='grey', dodge=True, alpha=0.5)
 ax.spines['right'].set_visible(False)
@@ -163,14 +319,16 @@ plt.savefig(os.path.join(plot_dir, 'Figure_S2e_.pdf'))
 # Figure S2f
 fig, ax = plt.subplots()
 ax = sns.barplot(data=plotting_df, x='model', y='score', hue='metric',
-                order=['Mesmer', 'Mesmer_Nuclear', 'FeatureNet_Retrained', 'RetinaMask', 'FeatureNet', 'StarDist', 'CellPose'],
-
+                order=['Mesmer', 'StarDist_TissueNet', 'CellPose_TissueNet', 'Mesmer_Nuclear',
+                       'FeatureNet_Retrained', 'RetinaMask', 'illastik', 'FeatureNet',
+                       'StarDist', 'CellPose'],
                  hue_order=['merge_normalized_by_true_cells', 'split_normalized_by_true_cells', 'catastrophe_normalized_by_true_cells'],
                  color='grey', ci=None)
 
 ax = sns.swarmplot(data=plotting_df, x='model', y='score', hue='metric',
-                   order=['Mesmer', 'Mesmer_Nuclear', 'FeatureNet_Retrained', 'RetinaMask',
-                          'FeatureNet', 'StarDist', 'CellPose'],
+                   order=['Mesmer', 'StarDist_TissueNet', 'CellPose_TissueNet', 'Mesmer_Nuclear',
+                       'FeatureNet_Retrained', 'RetinaMask', 'illastik', 'FeatureNet',
+                       'StarDist', 'CellPose'],
                    hue_order=['merge_normalized_by_true_cells', 'split_normalized_by_true_cells', 'catastrophe_normalized_by_true_cells'],
                    color='grey', dodge=True, alpha=0.5)
 ax.spines['right'].set_visible(False)

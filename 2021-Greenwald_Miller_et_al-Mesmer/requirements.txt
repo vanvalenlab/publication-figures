@@ -1,3 +1,5 @@
 ark-analysis>=0.2.9
-deepcell_toolbox
+#deepcell_toolbox
+git+https://github.com/vanvalenlab/deepcell-toolbox.git@df63f7c5d68a9730324a94726f5e7d92c777b548
 netcdf4
+deepcell-cpu

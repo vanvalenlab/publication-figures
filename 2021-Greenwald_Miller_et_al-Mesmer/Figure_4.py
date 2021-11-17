@@ -523,6 +523,7 @@ marker_thresholds = {'CK': 3, 'CD8': 3, 'CD11c': 3, 'CD68': 6}
 
 cluster_idx_pred = np.zeros(len(norm_data_pred))
 
+# create numeric index for cells positive for each marker
 for idx, marker in enumerate(['CD8', 'CK', 'CD11c']):
     threshold = marker_thresholds[marker]
     positive_idx = norm_data_pred[marker] > threshold
@@ -544,6 +545,9 @@ for idx, marker in enumerate(['CD8', 'CK', 'CD11c']):
     cluster_idx_true[update_idx] = idx + 1
 
 norm_data_true['cluster_idx'] = cluster_idx_true + 1
+
+norm_data_pred.to_csv(os.path.join(data_dir, 'norm_data_pred.csv'), index=False)
+norm_data_true.to_csv(os.path.join(data_dir, 'norm_data_true.csv'), index=False)
 
 # compute fraction of each cell type in each image
 counts_list, cells_list, algorithm_list = [], [], []
@@ -590,6 +594,100 @@ for i in range(len(cell_types)):
 
 fig.savefig(os.path.join(plot_dir, 'Figure_4j.pdf'))
 
+# determine matches between predicted and ground truth
+norm_data_true['matching_cell_type'] = 0
+norm_data_pred['matching_cell_type'] = 0
+for i in range(len(norm_data_true)):
+    current_label = norm_data_true.iloc[i, :]["label"]
+    current_fov = norm_data_true.iloc[i, :]["fov"]
+
+    true_mask = true_labels.loc[current_fov, :, :, 'whole_cell'].values
+    pred_mask = mesmer_labels.loc[current_fov, :, :, 'whole_cell'].values
+
+    # get the counts of each cell in pred which overlaps the true cell
+    overlap_id, overlap_counts = np.unique(pred_mask[true_mask == current_label], return_counts=True)
+
+    # remove 0, which is background
+    nonzero_idx = overlap_id != 0
+    overlap_id = overlap_id[nonzero_idx]
+    overlap_counts = overlap_counts[nonzero_idx]
+
+    # if only overlaps with 0, cells didn't match
+    if len(overlap_id) == 0:
+        # no matching cells, don't update
+        continue
+    else:
+        if len(overlap_id) == 1:
+            overlap_id = overlap_id[0]
+        else:
+            max_idx = np.argmax(overlap_counts)
+            overlap_id = overlap_id[max_idx]
+
+        pred_row_idx = np.logical_and(norm_data_pred['fov'] == current_fov,
+                                 norm_data_pred['label'] == overlap_id)
+
+        pred_cluster = norm_data_pred.loc[pred_row_idx, 'cluster_idx'].values[0]
+        true_cluster = norm_data_true.iloc[i, -2]
+
+        if pred_cluster == true_cluster:
+            norm_data_true.iloc[i, -1] = 1
+            norm_data_pred.loc[pred_row_idx, 'matching_cell_type'] = 1
+
+
+cluster_list, metric_list, scores_list = [], [], []
+for cluster in [1, 2, 3, 4]:
+    true_data_cluster = norm_data_true.loc[norm_data_true['cluster_idx'] == cluster, :]
+    true_pos = sum(true_data_cluster['matching_cell_type'] == 1)
+    false_neg = len(true_data_cluster) - true_pos
+
+    pred_data_cluster = norm_data_pred.loc[norm_data_pred['cluster_idx'] == cluster, :]
+    true_pos2 = sum(pred_data_cluster['matching_cell_type'] == 1)
+    false_pos = len(pred_data_cluster) - true_pos2
+
+    precision = true_pos / (true_pos + false_pos)
+    recall = true_pos / (true_pos + false_neg)
+
+    cluster_list.append(cluster)
+    metric_list.append('precision')
+    scores_list.append(precision)
+
+    cluster_list.append(cluster)
+    metric_list.append('recall')
+    scores_list.append(recall)
+
+plotting_df = pd.DataFrame({'cluster': cluster_list, 'metric': metric_list, 'score': scores_list})
+fig, ax = plt.subplots()
+ax = sns.barplot(data=plotting_df, x='cluster', y='score', hue='metric',
+                 color='grey', ci=None)
+plt.savefig(os.path.join(plot_dir, 'Figure_4_precision_recall.pdf'))
+
+# confusion_maxtrix = np.zeros((4, 5))
+# confusion_array = pd.DataFrame(confusion_maxtrix, columns=['1', '2', '3', '4', '10'],
+#                                index=['1', '2', '3', '4'])
+#
+# for cluster in [1, 2, 3, 4]:
+#     true_data_subset = norm_data_true.loc[norm_data_true['cluster_idx'] == cluster, :]
+#     confusion_id, confusion_count = np.unique(true_data_subset['pred_cluster_idx'], return_counts=True)
+#     for pred_id in [1, 2, 3, 4, 10]:
+#         pred_idx = confusion_id == pred_id
+#         pred_count = confusion_count[pred_idx]
+#
+#         if len(pred_count) == 0:
+#             pred_count = 0
+#         else:
+#             pred_count = pred_count[0]
+#
+#         confusion_array.loc[str(cluster), str(pred_id)] = pred_count
+#
+# for i in range(len(confusion_array)):
+#     vals = confusion_array.values[i, :]
+#     norm_vals = vals / np.sum(vals)
+#     confusion_array.values[i, :] = norm_vals
+#
+# g = sns.heatmap(data=confusion_array, annot=True, vmin=0, cmap='Blues')
+# plt.savefig(os.path.join(plot_dir, 'Figure_4_confusion.pdf'))
+
+
 # create overlays with cell subtypes
 new_colormap_vals = [[0, 0, 0],
                     [0.8, 0.8, 0.8],
@@ -625,3 +723,95 @@ for channel in ['CD8', 'CK', 'CD11c', 'DAPI']:
     current_img = current_img / np.max(current_img)
     io.imsave(os.path.join(plot_dir, 'Figure_4_' + channel + '_cropped.tif'),
               current_img[:500, 680:1180])
+
+
+## Example ReadMe
+
+# The TissueNet data is composed of a train, val, and test split. The train split is composed of
+# images which are 512x512 pixels. During training, we select random crops of size 256x256.
+# The val and test splits are each composed of size 256x256 pixel images so that they can be passed
+# directly to the model without cropping to evaluate calbacks and test accuracy. The val dataset is
+# composed of three parts: the data at the original image resolution, 0.5X resolution, and 2X
+# resolution. This is because we don't perform scaling (or any type of data augmentation) when
+# evaluating val accuracy, but we want to ensure that we evaluate each epoch's loss against a range
+# of image sizes
+
+import os
+
+import numpy as np
+import skimage.io as io
+
+from deepcell.utils.plot_utils import create_rgb_image
+from deepcell.utils.plot_utils import make_outline_overlay
+
+# load the test split
+npz_dir = 'path_to_dir_with_NPZs'
+test_dict = np.load(os.path.join(npz_dir, 'tissuenet_v1.0_test.npz'))
+
+# get image data
+test_X, test_y = test_dict['X'], test_dict['y']
+
+# get metadata
+tissue_list, platform_list = test_dict['tissue_list'], test_dict['platform_list']
+
+# create list of tissues and platforms for subsetting
+valid_tissues = np.unique(tissue_list)
+print(valid_tissues)
+valid_platforms = np.unique(platform_list)
+print(valid_platforms)
+
+# specify which tissues/platform combination you want to inspect; must be either 'all' or one of
+# the entries from the list of available types
+selected_tissue = 'breast'
+selected_platform = 'all'
+
+if selected_tissue not in valid_tissues and selected_tissue != 'all':
+    raise ValueError('Selected tissue must be either be part of the valid_tissues list, or all')
+
+if selected_platform not in valid_platforms and selected_platform != 'all':
+    raise ValueError('Selected platform must be either be part of the valid_platforms list, or all')
+
+# subset data to include only selected combinations
+if selected_tissue == 'all':
+    tissue_idx = np.repeat(True, len(tissue_list))
+else:
+    tissue_idx = tissue_list == selected_tissue
+
+if selected_platform == 'all':
+    platform_idx = np.repeat(True, len(platform_list))
+else:
+    platform_idx = platform_list == selected_platform
+
+combined_idx = tissue_idx * platform_idx
+
+if sum(combined_idx) == 0:
+    raise ValueError("The specified combination of image platform and tissue type does not exist")
+
+selected_X, selected_y = test_X[combined_idx, ...], test_y[combined_idx, ...]
+
+# create visualization with both image data and labels overlaid
+rgb_images = create_rgb_image(selected_X, channel_colors=['green', 'blue'])
+overlay_data_cell = make_outline_overlay(rgb_data=rgb_images, predictions=selected_y[..., 0:1])
+overlay_data_nuc = make_outline_overlay(rgb_data=rgb_images, predictions=selected_y[..., 1:2])
+
+# randomly choose an image to display
+plot_idx = np.random.randint(0, selected_X.shape[0])
+io.imshow(overlay_data_cell[plot_idx])
+
+# nuclear annotations for same image
+io.imshow(overlay_data_nuc[plot_idx])
+
+
+
+train_dict = np.load('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/labeled_data/20201018_multiplex_final_seed_1_val_256x256.npz')
+train_split = np.load('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/labeled_data/20201018_multiplex_final_seed_1_nuclear_val_256x256.npz')
+train_X, train_y = train_split['X'], train_split['y']
+
+np.savez_compressed('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/labeled_data/tissuenet_v1.0_val.npz',
+                    X=train_X, y=train_y, tissue_list=train_dict['tissue_list'], platform_list=train_dict['platform_list'])
+
+test_npz = np.load('/Users/noahgreenwald/Documents/Grad_School/Lab/Segmentation_Project/data/datasets/labeled_data/tissuenet_v1.0_val.npz')
+test_X, test_y = test_npz['X'], test_npz['y']
+test_tissue, test_platform = test_npz['tissue_list'], test_npz['platform_list']
+
+
