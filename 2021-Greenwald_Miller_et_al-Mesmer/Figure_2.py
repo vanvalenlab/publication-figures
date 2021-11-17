@@ -88,8 +88,8 @@ np.savez_compressed(os.path.join(benchmarking_dir, 'ilastik_metrics_jacc.npz'), 
 
 # Retrained cellpose
 # copy predictions
-cellpose_dir = '/Users/noahgreenwald/Downloads/publications_data_folder/benchmarking_accuracy/cellpose_predictions'
-download_dir = '/Users/noahgreenwald/Downloads/publications_data_folder/benchmarking_accuracy/cellpose_predictions_full'
+cellpose_dir = os.path.join(base_dir, 'benchmarking_accuracy/cellpose_predictions')
+download_dir = os.path.join(base_dir, 'benchmarking_accuracy/cellpose_predictions_full')
 for seed in ['1', '2', '3']:
     save_dir = os.path.join(cellpose_dir, 'split{}'.format(seed))
     if not os.path.exists(save_dir):
@@ -112,7 +112,7 @@ for seed in ['1', '2', '3']:
 
 # benchmark cellpose output
 metrics = {}
-for seed in ['2', '3']:
+for seed in ['1', '2', '3']:
     true_dict = np.load(os.path.join(npz_dir, '20201018_multiplex_seed_{}_test_256x256.npz'.format(seed)))
     true_labels = true_dict['y']
     pred_labels = np.load(os.path.join(cellpose_dir, 'split_{}_combined_masks.npz'.format(seed)))['y']
@@ -427,167 +427,166 @@ m.calc_object_stats(y_true=np.expand_dims(np.expand_dims(true_labels, axis=0), a
                     y_pred=np.expand_dims(np.expand_dims(pred_labels, axis=0), axis=-1))
 m.stats['f1']
 
-# note: this code requires TissueNet to run, which will be made available following publication
 
 # Figure 2g
-# y_pred = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_512x512_predictions.npz'))['y']
-# true_dict = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_512x512.npz'))
-# X_true, y_true, tissue_list, platform_list = true_dict['X'], true_dict['y'], true_dict['tissue_list'], true_dict['platform_list']
+data_dir = os.path.join(base_dir, 'test_split_predictions/')
+y_pred = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_512x512_predictions.npz'))['y']
+true_dict = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_512x512.npz'))
+X_true, y_true, tissue_list, platform_list = true_dict['X'], true_dict['y'], true_dict['tissue_list'], true_dict['platform_list']
 
-# selected_indices = [328, 330, 79, 191, 252,246, 247,249,
-#                     231, 232, 230, 172, 168, 182, 181,
-#                     110, 132,222, 227, 237, 240, 33, 45,
-#                     221, 135]
-# selected_names = ['breast_cancer', 'breast_cancer', 'colon', 'crc', 'dcis', 'dcis', 'dcis', 'dcis',
-#                   'epidermis', 'epidermis', 'epidermis', 'esophagus', 'esophagus', 'hiv_ln', 'hiv_ln',
-#                   'lung_cancer', 'lung_cancer', 'lymphoma', 'lymphoma', 'melanoma', 'melanoma', 'pancreas', 'pancreas',
-#                   'spleen', 'tb']
-#
-# final_indices = [328, 79, 191, 252,
-#                     232, 172, 182,
-#                     110, 227, 45,
-#                     221, 135]
-# final_names = ['breast_cancer', 'colon', 'crc', 'dcis',
-#                   'epidermis', 'esophagus', 'hiv_ln',
-#                   'lung_cancer', 'lymphoma', 'pancreas',
-#                   'spleen', 'tb']
-#
-# for idx in range(len(final_indices)):
-#     i = final_indices[idx]
-#     true_label, pred_label = y_true[i, ..., 0], y_pred[i, ..., 0]
-#     disp_img_cell = figures.label_image_by_ratio(true_label, pred_label)
-#     disp_img_cell_final = figures.apply_colormap_to_img(disp_img_cell)
-#     name = final_names[idx]
-#     io.imsave(plot_dir + 'Figure_2_g_{}_{}.png'.format(idx, name), disp_img_cell_final.astype('float32'))
-#
-# # f1 scores for each image
-# m = Metrics('test_split')
-# m.calc_object_stats(y_true=y_true[final_indices, ...],
-#                     y_pred=y_pred[final_indices, ...])
-#
-# m.stats['recall'] = m.stats['correct_detections'] / m.stats['n_true']
-# m.stats['precision'] = m.stats['correct_detections'] / m.stats['n_pred']
-# m.stats['f1'] = [hmean([m.stats['recall'].values[i], m.stats['precision'].values[i]]) for i in range(len(m.stats))]
+selected_indices = [328, 330, 79, 191, 252,246, 247,249,
+                    231, 232, 230, 172, 168, 182, 181,
+                    110, 132,222, 227, 237, 240, 33, 45,
+                    221, 135]
+selected_names = ['breast_cancer', 'breast_cancer', 'colon', 'crc', 'dcis', 'dcis', 'dcis', 'dcis',
+                  'epidermis', 'epidermis', 'epidermis', 'esophagus', 'esophagus', 'hiv_ln', 'hiv_ln',
+                  'lung_cancer', 'lung_cancer', 'lymphoma', 'lymphoma', 'melanoma', 'melanoma', 'pancreas', 'pancreas',
+                  'spleen', 'tb']
+
+final_indices = [328, 79, 191, 252,
+                    232, 172, 182,
+                    110, 227, 45,
+                    221, 135]
+final_names = ['breast_cancer', 'colon', 'crc', 'dcis',
+                  'epidermis', 'esophagus', 'hiv_ln',
+                  'lung_cancer', 'lymphoma', 'pancreas',
+                  'spleen', 'tb']
+
+for idx in range(len(final_indices)):
+    i = final_indices[idx]
+    true_label, pred_label = y_true[i, ..., 0], y_pred[i, ..., 0]
+    disp_img_cell = figures.label_image_by_ratio(true_label, pred_label)
+    disp_img_cell_final = figures.apply_colormap_to_img(disp_img_cell)
+    name = final_names[idx]
+    io.imsave(plot_dir + 'Figure_2_g_{}_{}.png'.format(idx, name), disp_img_cell_final.astype('float32'))
+
+# f1 scores for each image
+m = Metrics('test_split')
+m.calc_object_stats(y_true=y_true[final_indices, ...],
+                    y_pred=y_pred[final_indices, ...])
+
+m.stats['recall'] = m.stats['correct_detections'] / m.stats['n_true']
+m.stats['precision'] = m.stats['correct_detections'] / m.stats['n_pred']
+m.stats['f1'] = [hmean([m.stats['recall'].values[i], m.stats['precision'].values[i]]) for i in range(len(m.stats))]
 
 # Figure S2h
-# data_dir = base_dir + '/image_files/test_split_predictions/'
-# true_dict = np.load(data_dir + '20201018_multiplex_final_seed_1_nuclear_test_256x256.npz')
-# true_cell_labels = true_dict['y'][..., :1].astype('int16')
-# true_x_data = true_dict['X']
-# pred_cell_labels = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_cell_prediction.npz'))['y']
-# pred_nuc_expansion_labels = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_nuc_expansion_prediction.npz'))['y']
-#
-# for i in range(true_cell_labels.shape[0]):
-#     img = true_cell_labels[i, :, :, 0]
-#     img = label(img)
-#     true_cell_labels[i, :, :, 0] = img
-#
-# for i in range(pred_cell_labels.shape[0]):
-#     img = pred_cell_labels[i, :, :, 0]
-#     img = label(img)
-#     pred_cell_labels[i, :, :, 0] = img
-#
-# for i in range(pred_nuc_expansion_labels.shape[0]):
-#     img = pred_nuc_expansion_labels[i, :, :, 0]
-#     img = label(img)
-#     pred_nuc_expansion_labels[i, :, :, 0] = img
-#
-#
-# from deepcell_toolbox.metrics import Metrics
-# m = Metrics('whole_cell')
-# m.calc_object_stats(y_true=true_cell_labels, y_pred=pred_cell_labels)
-#
-# jacc = figures.calc_jaccard_index_object(m.predictions, true_cell_labels, pred_cell_labels)
-# x = np.concatenate(jacc)
-# np.mean(x)
-# np.savez_compressed(os.path.join(data_dir, 'cell_accuracy_metrics.npz'), metrics=m.predictions)
-#
-# m_nuc = Metrics('nuc')
-# m_nuc.calc_object_stats(y_true=true_cell_labels, y_pred=pred_nuc_expansion_labels)
-# np.savez_compressed(os.path.join(data_dir, 'nuc_expansion_accuracy_metrics.npz'), metrics=m_nuc.predictions)
-#
-# cell_preds = np.load(os.path.join(data_dir, 'cell_accuracy_metrics.npz'), allow_pickle=True)['metrics']
-# nuc_exp_preds = np.load(os.path.join(data_dir, 'nuc_expansion_accuracy_metrics.npz'), allow_pickle=True)['metrics']
-#
-# prop_df_cell = pd.DataFrame()
-# prop_df_nuc = pd.DataFrame()
-# properties = ['label', 'area', 'eccentricity', 'major_axis_length', 'minor_axis_length',
-#              'perimeter', 'centroid', 'convex_area',
-#              'equivalent_diameter']
-#
-# for i in range(len(cell_preds)):
-#     pred_label = pred_cell_labels[i, :, :, 0]
-#     pred_expansion_label = pred_nuc_expansion_labels[i, :, :, 0]
-#     true_label = true_cell_labels[i, :, :, 0]
-#
-#     # get ids of true and predicted cells which metrics evaluates as being correctly identified
-#     good_ids_true = cell_preds[i][0]['correct']['y_true']
-#     good_ids_pred = cell_preds[i][0]['correct']['y_pred']
-#
-#     true_props_table = pd.DataFrame(regionprops_table(true_label, properties=properties))
-#     pred_props_table = pd.DataFrame(regionprops_table(pred_label, properties=properties))
-#
-#     # extract regionprops information from accurately matched cells and combine into single df
-#     paired_df_cell = figures.get_paired_metrics(true_ids=good_ids_true, pred_ids=good_ids_pred,
-#                                            true_metrics=true_props_table,
-#                                            pred_metrics=pred_props_table)
-#     paired_df_cell['img_num'] = i
-#     prop_df_cell = prop_df_cell.append(paired_df_cell)
-#
-#     # same thing for nuclear expansion predictions
-#     # get ids of true and predicted cells which metrics evaluates as being correctly identified
-#     good_ids_true_nuc = nuc_exp_preds[i][0]['correct']['y_true']
-#     good_ids_pred_nuc = nuc_exp_preds[i][0]['correct']['y_pred']
-#
-#     true_props_table_nuc = pd.DataFrame(regionprops_table(true_label, properties=properties))
-#     pred_props_table_nuc = pd.DataFrame(regionprops_table(pred_expansion_label, properties=properties))
-#
-#     # extract regionprops information from accurately matched cells and combine into single df
-#     paired_df_nuc = figures.get_paired_metrics(true_ids=good_ids_true_nuc, pred_ids=good_ids_pred_nuc,
-#                                                 true_metrics=true_props_table_nuc,
-#                                                 pred_metrics=pred_props_table_nuc)
-#     paired_df_nuc['img_num'] = i
-#     prop_df_nuc = prop_df_nuc.append(paired_df_nuc)
-#
-#
-# bins = np.percentile(prop_df_cell['area_true'].values, np.arange(0, 101, 10))
-#
-# prop_df_cell['bin'] = 9
-# prop_df_nuc['bin'] = 9
-# for i in range(10):
-#     bin_start = bins[i]
-#     bin_end = bins[i + 1]
-#     idx = np.logical_and(prop_df_cell['area_true'] > bin_start,
-#                          prop_df_cell['area_true'] <= bin_end)
-#     prop_df_cell.loc[idx, 'bin'] = i
-#
-#     idx = np.logical_and(prop_df_nuc['area_true'] > bin_start,
-#                          prop_df_nuc['area_true'] <= bin_end)
-#     prop_df_nuc.loc[idx, 'bin'] = i
-#
-# prop_df_cell['pred_log2'] = np.log2(prop_df_cell['area_pred'].values / prop_df_cell['area_true'].values)
-# prop_df_nuc['pred_log2'] = np.log2(prop_df_nuc['area_pred'].values / prop_df_nuc['area_true'].values)
-#
-# prop_df_cell.to_csv(os.path.join(data_dir, 'cell_properties.csv'), index=False)
-# prop_df_nuc.to_csv(os.path.join(data_dir, 'nuc_properties.csv'), index=False)
-#
-# prop_df_cell = pd.read_csv(os.path.join(data_dir, 'cell_properties.csv'))
-# prop_df_nuc = pd.read_csv(os.path.join(data_dir, 'nuc_properties.csv'))
-#
-# g = sns.catplot(data=prop_df_cell,
-#                 kind='violin', x='bin', y='pred_log2', showfliers=True,
-#                 order=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], color='grey')
-#
-# g.set(ylim=(-1, 1))
-# g.fig.set_size_inches(14, 5)
-#
-# plt.savefig(os.path.join(plot_dir, 'Figure_S2h_left.pdf'))
-#
-# g = sns.catplot(data=prop_df_nuc,
-#                 kind='violin', x='bin', y='pred_log2', showfliers=True,
-#                 order=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], color='grey')
-#
-# g.set(ylim=(-1, 1))
-# g.fig.set_size_inches(14, 5)
-#
-# plt.savefig(os.path.join(plot_dir, 'Figure_S2h_right.pdf'))
+true_dict = np.load(data_dir + '20201018_multiplex_final_seed_1_nuclear_test_256x256.npz')
+true_cell_labels = true_dict['y'][..., :1].astype('int16')
+true_x_data = true_dict['X']
+pred_cell_labels = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_cell_prediction.npz'))['y']
+pred_nuc_expansion_labels = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_nuc_expansion_prediction.npz'))['y']
+
+for i in range(true_cell_labels.shape[0]):
+    img = true_cell_labels[i, :, :, 0]
+    img = label(img)
+    true_cell_labels[i, :, :, 0] = img
+
+for i in range(pred_cell_labels.shape[0]):
+    img = pred_cell_labels[i, :, :, 0]
+    img = label(img)
+    pred_cell_labels[i, :, :, 0] = img
+
+for i in range(pred_nuc_expansion_labels.shape[0]):
+    img = pred_nuc_expansion_labels[i, :, :, 0]
+    img = label(img)
+    pred_nuc_expansion_labels[i, :, :, 0] = img
+
+
+from deepcell_toolbox.metrics import Metrics
+m = Metrics('whole_cell')
+m.calc_object_stats(y_true=true_cell_labels, y_pred=pred_cell_labels)
+
+jacc = figures.calc_jaccard_index_object(m.predictions, true_cell_labels, pred_cell_labels)
+x = np.concatenate(jacc)
+np.mean(x)
+np.savez_compressed(os.path.join(data_dir, 'cell_accuracy_metrics.npz'), metrics=m.predictions)
+
+m_nuc = Metrics('nuc')
+m_nuc.calc_object_stats(y_true=true_cell_labels, y_pred=pred_nuc_expansion_labels)
+np.savez_compressed(os.path.join(data_dir, 'nuc_expansion_accuracy_metrics.npz'), metrics=m_nuc.predictions)
+
+cell_preds = np.load(os.path.join(data_dir, 'cell_accuracy_metrics.npz'), allow_pickle=True)['metrics']
+nuc_exp_preds = np.load(os.path.join(data_dir, 'nuc_expansion_accuracy_metrics.npz'), allow_pickle=True)['metrics']
+
+prop_df_cell = pd.DataFrame()
+prop_df_nuc = pd.DataFrame()
+properties = ['label', 'area', 'eccentricity', 'major_axis_length', 'minor_axis_length',
+             'perimeter', 'centroid', 'convex_area',
+             'equivalent_diameter']
+
+for i in range(len(cell_preds)):
+    pred_label = pred_cell_labels[i, :, :, 0]
+    pred_expansion_label = pred_nuc_expansion_labels[i, :, :, 0]
+    true_label = true_cell_labels[i, :, :, 0]
+
+    # get ids of true and predicted cells which metrics evaluates as being correctly identified
+    good_ids_true = cell_preds[i][0]['correct']['y_true']
+    good_ids_pred = cell_preds[i][0]['correct']['y_pred']
+
+    true_props_table = pd.DataFrame(regionprops_table(true_label, properties=properties))
+    pred_props_table = pd.DataFrame(regionprops_table(pred_label, properties=properties))
+
+    # extract regionprops information from accurately matched cells and combine into single df
+    paired_df_cell = figures.get_paired_metrics(true_ids=good_ids_true, pred_ids=good_ids_pred,
+                                           true_metrics=true_props_table,
+                                           pred_metrics=pred_props_table)
+    paired_df_cell['img_num'] = i
+    prop_df_cell = prop_df_cell.append(paired_df_cell)
+
+    # same thing for nuclear expansion predictions
+    # get ids of true and predicted cells which metrics evaluates as being correctly identified
+    good_ids_true_nuc = nuc_exp_preds[i][0]['correct']['y_true']
+    good_ids_pred_nuc = nuc_exp_preds[i][0]['correct']['y_pred']
+
+    true_props_table_nuc = pd.DataFrame(regionprops_table(true_label, properties=properties))
+    pred_props_table_nuc = pd.DataFrame(regionprops_table(pred_expansion_label, properties=properties))
+
+    # extract regionprops information from accurately matched cells and combine into single df
+    paired_df_nuc = figures.get_paired_metrics(true_ids=good_ids_true_nuc, pred_ids=good_ids_pred_nuc,
+                                                true_metrics=true_props_table_nuc,
+                                                pred_metrics=pred_props_table_nuc)
+    paired_df_nuc['img_num'] = i
+    prop_df_nuc = prop_df_nuc.append(paired_df_nuc)
+
+
+bins = np.percentile(prop_df_cell['area_true'].values, np.arange(0, 101, 10))
+
+prop_df_cell['bin'] = 9
+prop_df_nuc['bin'] = 9
+for i in range(10):
+    bin_start = bins[i]
+    bin_end = bins[i + 1]
+    idx = np.logical_and(prop_df_cell['area_true'] > bin_start,
+                         prop_df_cell['area_true'] <= bin_end)
+    prop_df_cell.loc[idx, 'bin'] = i
+
+    idx = np.logical_and(prop_df_nuc['area_true'] > bin_start,
+                         prop_df_nuc['area_true'] <= bin_end)
+    prop_df_nuc.loc[idx, 'bin'] = i
+
+prop_df_cell['pred_log2'] = np.log2(prop_df_cell['area_pred'].values / prop_df_cell['area_true'].values)
+prop_df_nuc['pred_log2'] = np.log2(prop_df_nuc['area_pred'].values / prop_df_nuc['area_true'].values)
+
+prop_df_cell.to_csv(os.path.join(data_dir, 'cell_properties.csv'), index=False)
+prop_df_nuc.to_csv(os.path.join(data_dir, 'nuc_properties.csv'), index=False)
+
+prop_df_cell = pd.read_csv(os.path.join(data_dir, 'cell_properties.csv'))
+prop_df_nuc = pd.read_csv(os.path.join(data_dir, 'nuc_properties.csv'))
+
+g = sns.catplot(data=prop_df_cell,
+                kind='violin', x='bin', y='pred_log2', showfliers=True,
+                order=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], color='grey')
+
+g.set(ylim=(-1, 1))
+g.fig.set_size_inches(14, 5)
+
+plt.savefig(os.path.join(plot_dir, 'Figure_S2h_left.pdf'))
+
+g = sns.catplot(data=prop_df_nuc,
+                kind='violin', x='bin', y='pred_log2', showfliers=True,
+                order=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], color='grey')
+
+g.set(ylim=(-1, 1))
+g.fig.set_size_inches(14, 5)
+
+plt.savefig(os.path.join(plot_dir, 'Figure_S2h_right.pdf'))
