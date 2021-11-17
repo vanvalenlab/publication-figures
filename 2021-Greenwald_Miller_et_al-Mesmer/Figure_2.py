@@ -23,7 +23,7 @@ from ark.utils.io_utils import list_files
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 
-base_dir = 'path_to_zip_folder/publications_data_folder/'
+base_dir = 'path_to_zip_folder/publication_data_folder/'
 plot_dir = base_dir + '/plots/'
 benchmarking_dir = base_dir + '/benchmarking_accuracy/'
 npz_dir = os.path.join(base_dir, 'test_split_predictions')
