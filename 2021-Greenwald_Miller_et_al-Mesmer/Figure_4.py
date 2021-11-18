@@ -6,11 +6,15 @@ import skimage.io as io
 import seaborn as sns
 
 from ark.utils.load_utils import load_imgs_from_dir
-from ark.utils import io_utils
-from ark.segmentation.marker_quantification import create_marker_count_matrices
+from ark.utils import io_utils, segmentation_utils
+from ark.segmentation.marker_quantification import create_marker_count_matrices, compute_marker_counts
 from skimage.segmentation import find_boundaries
+from skimage import morphology
 import figures
 from matplotlib.colors import ListedColormap
+
+from scipy.stats import pearsonr
+import scipy.stats as st
 
 
 import numpy as np
@@ -20,7 +24,7 @@ import matplotlib
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 
-base_dir = 'path_to_zip_folder/publications_data_folder/'
+base_dir = 'path_to_zip_folder/publication_data_folder/'
 plot_dir = base_dir + 'plots'
 data_dir = base_dir + '/phenotyping_data/pred_labels/'
 
@@ -45,12 +49,12 @@ for i in range(len(channels)):
     col_start, col_end = col_coords[i]
     current_point = points[i]
     current_channel_name = channels[i]
-    current_channel = io.imread(os.path.join(data_dir, 'fovs', current_point, current_channel_name))
+    current_channel = io.imread(os.path.join(data_dir, current_point, current_channel_name))
     current_channel = current_channel[row_start:row_end, col_start:col_end]
     current_channel = current_channel / np.max(current_channel)
     DNA = channel_data.loc[current_point, row_start:row_end, col_start:col_end, 'HH3']
     DNA = DNA / np.max(DNA)
-    carbon = io.imread(os.path.join(data_dir, 'fovs', current_point, 'C.tif'))
+    carbon = io.imread(os.path.join(data_dir, current_point, 'C.tif'))
     carbon = carbon[row_start:row_end, col_start:col_end]
     carbon = carbon / np.max(carbon)
     current_cell_label = cell_labels.loc[current_point, row_start:row_end, col_start:col_end, 'whole_cell']
@@ -90,7 +94,7 @@ img_list = ['CD44.tif', 'COX2.tif', 'ECAD.tif', 'GLUT1.tif', 'HER2.tif', 'HH3.ti
 
 folders = io_utils.list_folders(data_dir, 'Point')
 
-fovs = io_utils.list_folders(os.path.join(data_dir, 'fovs'), 'Point')
+fovs = io_utils.list_folders(data_dir, 'Point')
 
 
 # Since each point has different channels, we need to segment them one at a time
@@ -106,7 +110,7 @@ segmentation_labels = xr.DataArray(np.concatenate((cell_labels.values,
 compartment_df_pred_raw = pd.DataFrame()
 compartment_df_pred_norm = pd.DataFrame()
 
-# # this code require a modified version of the pipeline to run
+# # this code require a modified version of the pipeline to run: the outputs are saved below
 # for fov in segmentation_labels.fovs.values:
 #     channel_data = load_imgs_from_tree(os.path.join(data_dir, 'fovs'), fovs=[fov],
 #                                                   img_sub_folder='potential_channels')
@@ -200,6 +204,7 @@ true_segmentation_labels = xr.DataArray(np.concatenate((true_cell_labels.values.
 compartment_df_true_raw = pd.DataFrame()
 compartment_df_true_norm = pd.DataFrame()
 
+# this code requires a modified version of the pipeline to run: the outputs are saved below
 # for fov in true_segmentation_labels.fovs.values:
 #     channel_data = load_imgs_from_tree(base_dir + 'cropped_inputs', fovs=[fov])
 #
@@ -219,7 +224,6 @@ compartment_df_true_norm = pd.DataFrame()
 
 # read in segmented data
 compartment_df_true_raw = pd.read_csv(os.path.join(data_dir, 'single_cell_data_true.csv'))
-# cell_counts = cell_counts.loc[cell_counts['cell_size_nuclear'] > 20, :]
 
 channels = np.array(['CD44', 'ECAD', 'GLUT1', 'HER2', 'HH3', 'Ki67', 'P', 'PanKRT'])
 nc_ratio_vals = []
@@ -270,232 +274,231 @@ plt.savefig(os.path.join(plot_dir, 'Figure_4b_true.pdf'))
 
 # NC ratio
 
-# # Figure 4c
-# data_dir = base_dir + 'image_files/test_split_predictions/'
-# true_dict = np.load(data_dir + '20201018_multiplex_final_seed_1_nuclear_test_256x256.npz')
-# X_true = true_dict['X']
-# pred_cell_labels = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_cell_prediction.npz'))['y']
-#
-# # top crop
-# io.imsave(os.path.join(plot_dir, 'Figure_4c_top_DNA.tiff'), X_true[548, 116:, :, 0].astype('float32'))
-# io.imsave(os.path.join(plot_dir, 'Figure_4c_top_Membrabe.tiff'), X_true[548, 116:, :, 1].astype('float32'))
-# outline_top_cell = find_boundaries(pred_cell_labels[548, 116:, :, 0], mode='inner')
-# io.imsave(os.path.join(plot_dir, 'Figure_4c_top_cell_outline.tiff'), outline_top_cell.astype('float32'))
-#
-# # bottom crop
-# io.imsave(os.path.join(plot_dir, 'Figure_4c_bottom_DNA.tiff'), X_true[853, 90:230, :, 0].astype('float32'))
-# io.imsave(os.path.join(plot_dir, 'Figure_4c_bottom_Membrabe.tiff'), X_true[853, 90:230, :, 1].astype('float32'))
-# outline_top_cell = find_boundaries(pred_cell_labels[853, 90:230, :, 0], mode='inner')
-# io.imsave(os.path.join(plot_dir, 'Figure_4c_bottom_cell_outline.tiff'), outline_top_cell.astype('float32'))
+# Figure 4c
+data_dir = base_dir + '/test_split_predictions/'
+true_dict = np.load(data_dir + '20201018_multiplex_final_seed_1_nuclear_test_256x256.npz')
+X_true = true_dict['X']
+pred_cell_labels = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_cell_prediction.npz'))['y']
+
+# top crop
+io.imsave(os.path.join(plot_dir, 'Figure_4c_top_DNA.tiff'), X_true[548, 116:, :, 0].astype('float32'))
+io.imsave(os.path.join(plot_dir, 'Figure_4c_top_Membrabe.tiff'), X_true[548, 116:, :, 1].astype('float32'))
+outline_top_cell = find_boundaries(pred_cell_labels[548, 116:, :, 0], mode='inner')
+io.imsave(os.path.join(plot_dir, 'Figure_4c_top_cell_outline.tiff'), outline_top_cell.astype('float32'))
+
+# bottom crop
+io.imsave(os.path.join(plot_dir, 'Figure_4c_bottom_DNA.tiff'), X_true[853, 90:230, :, 0].astype('float32'))
+io.imsave(os.path.join(plot_dir, 'Figure_4c_bottom_Membrabe.tiff'), X_true[853, 90:230, :, 1].astype('float32'))
+outline_top_cell = find_boundaries(pred_cell_labels[853, 90:230, :, 0], mode='inner')
+io.imsave(os.path.join(plot_dir, 'Figure_4c_bottom_cell_outline.tiff'), outline_top_cell.astype('float32'))
 
 # figure 4d
-# true_dict = np.load(data_dir + '20201018_multiplex_final_seed_1_nuclear_test_256x256.npz')
-# tissue_list = np.load(data_dir + '/tissue_list.npz.npy')
-# true_cell_labels = true_dict['y'][..., :1].astype('int16')
-# true_nuc_labels = true_dict['y'][..., 1:].astype('int16')
-# pred_cell_labels = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_cell_prediction.npz'))['y']
-# pred_nuc_labels = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_nuc_prediction.npz'))['y']
-#
-# for i in range(true_cell_labels.shape[0]):
-#     img = true_cell_labels[i, :, :, 0]
-#     img = morphology.label(img)
-#     true_cell_labels[i, :, :, 0] = img
-#
-# for i in range(pred_cell_labels.shape[0]):
-#     img = pred_cell_labels[i, :, :, 0]
-#     img = morphology.label(img)
-#     pred_cell_labels[i, :, :, 0] = img
-#
-# properties_df = pd.read_csv(os.path.join(data_dir, 'cell_properties.csv'))
-#
-# label_true_nuc, label_pred_nuc, area_true_nuc, area_pred_nuc = [], [], [], []
-# for idx in range(true_nuc_labels.shape[0]):
-#     true_nuc_label = true_nuc_labels[idx, :, :, 0]
-#     pred_nuc_label = pred_nuc_labels[idx, :, :, 0]
-#
-#     true_cell_label = true_cell_labels[idx, :, :, 0]
-#     pred_cell_label = pred_cell_labels[idx, :, :, 0]
-#
-#     true_nuc_props = pd.DataFrame(regionprops_table(true_nuc_label, properties=['label', 'area', 'centroid', 'coords']))
-#     pred_nuc_props = pd.DataFrame(regionprops_table(pred_nuc_label, properties=['label', 'area', 'centroid', 'coords']))
-#
-#     true_cell_props = pd.DataFrame(regionprops_table(true_cell_label, properties=['label', 'coords']))
-#     pred_cell_props = pd.DataFrame(regionprops_table(pred_cell_label, properties=['label', 'coords']))
-#
-#     current_df = properties_df.loc[properties_df['img_num'] == idx, :]
-#     for true_cell in current_df['label_true'].values:
-#         true_cell_coords = true_cell_props.loc[true_cell_props['label'] == true_cell, 'coords'].values[0]
-#         true_nuc_id = segmentation_utils.find_nuclear_mask_id(true_nuc_label, cell_coords=true_cell_coords)
-#         if true_nuc_id is None:
-#             true_nuc_area = 0
-#         else:
-#             true_nuc_area = true_nuc_props.loc[true_nuc_props['label'] == true_nuc_id, 'area'].values[0]
-#         label_true_nuc.append(true_nuc_id)
-#         area_true_nuc.append(true_nuc_area)
-#
-#         pred_cell = current_df.loc[current_df['label_true'] == true_cell, 'label_pred'].values[0]
-#         pred_cell_coords = pred_cell_props.loc[pred_cell_props['label'] == pred_cell, 'coords'].values[0]
-#         pred_nuc_id = segmentation_utils.find_nuclear_mask_id(pred_nuc_label, cell_coords=pred_cell_coords)
-#         if pred_nuc_id is None:
-#             pred_nuc_area = 0
-#         else:
-#             pred_nuc_area = pred_nuc_props.loc[pred_nuc_props['label'] == pred_nuc_id, 'area'].values[0]
-#         label_pred_nuc.append(pred_nuc_id)
-#         area_pred_nuc.append(pred_nuc_area)
-#
-# properties_df['label_true_nuc'] = label_true_nuc
-# properties_df['label_pred_nuc'] = label_pred_nuc
-# properties_df['area_true_nuc'] = area_true_nuc
-# properties_df['area_pred_nuc'] = area_pred_nuc
-# properties_df['nc_ratio_true'] = properties_df['area_true_nuc'] / properties_df['area_true']
-# properties_df['nc_ratio_pred'] = properties_df['area_pred_nuc'] / properties_df['area_pred']
-#
-# properties_df.to_csv(os.path.join(data_dir, 'cell_properties_with_new_props_nc.csv'), index=False)
-#
-# properties_df = pd.read_csv(os.path.join(data_dir, 'cell_properties_with_new_props_nc.csv'))
-#
-#
-# plotting_props = ['major_minor_axis_ratio', 'perim_square_over_area', 'nc_ratio']
-#
-# properties_df.loc[properties_df['nc_ratio_pred'] > 1, 'nc_ratio_pred'] = 1
-# properties_df.loc[properties_df['nc_ratio_true'] > 1, 'nc_ratio_true'] = 1
-#
-#
-# mins = [0, 10, -0.25]
-# maxes = [3, 25, 1.25]
-# for i in range(len(plotting_props)):
-#     prop = plotting_props[i]
-#     x = properties_df[prop + '_true'].values
-#     y = properties_df[prop + '_pred'].values
-#
-#     r, _ = pearsonr(x, y)
-#
-#     current_min, current_max = mins[i], maxes[i]
-#     # Create meshgrid
-#     xx, yy = np.mgrid[current_min:current_max:100j,
-#              current_min:current_max:100j]
-#
-#     positions = np.vstack([xx.ravel(), yy.ravel()])
-#     values = np.vstack([x, y])
-#     kernel = st.gaussian_kde(values)
-#     f = np.reshape(kernel(positions).T, xx.shape)
-#
-#
-#     fig = plt.figure(figsize=(8,8))
-#     ax = fig.gca()
-#     ax.set_xlim(current_min, current_max)
-#     ax.set_ylim(current_min, current_max)
-#     cfset = ax.contourf(xx, yy, f, cmap='coolwarm')
-#     l = ax.imshow(np.rot90(f), cmap='coolwarm')
-#     ax.set_xlabel('True value')
-#     ax.set_ylabel('Predicted Value')
-#     fig.colorbar(l)
-#     fig.text(xmax - 4 * deltaX, ymin + 4 * deltaY, str(np.round(r, 2)))
-#
-#     plt.savefig(os.path.join(plot_dir, prop + '_correlation_4d.pdf'))
-#
-# # create colorbar
-# x = np.random.rand(400).reshape(40, 10)
-# fig, ax = plt.subplots()
-# x1 = ax.imshow(x, cmap='coolwarm')
-# fig.colorbar(x1)
-# plt.savefig(os.path.join(plot_dir, 'Figure_4d_colorbar.pdf'))
+true_dict = np.load(data_dir + '20201018_multiplex_final_seed_1_nuclear_test_256x256.npz')
+tissue_list = np.load(data_dir + '/tissue_list.npz.npy')
+true_cell_labels = true_dict['y'][..., :1].astype('int16')
+true_nuc_labels = true_dict['y'][..., 1:].astype('int16')
+pred_cell_labels = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_cell_prediction.npz'))['y']
+pred_nuc_labels = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_nuc_prediction.npz'))['y']
+
+for i in range(true_cell_labels.shape[0]):
+    img = true_cell_labels[i, :, :, 0]
+    img = morphology.label(img)
+    true_cell_labels[i, :, :, 0] = img
+
+for i in range(pred_cell_labels.shape[0]):
+    img = pred_cell_labels[i, :, :, 0]
+    img = morphology.label(img)
+    pred_cell_labels[i, :, :, 0] = img
+
+properties_df = pd.read_csv(os.path.join(data_dir, 'cell_properties.csv'))
+
+label_true_nuc, label_pred_nuc, area_true_nuc, area_pred_nuc = [], [], [], []
+for idx in range(true_nuc_labels.shape[0]):
+    true_nuc_label = true_nuc_labels[idx, :, :, 0]
+    pred_nuc_label = pred_nuc_labels[idx, :, :, 0]
+
+    true_cell_label = true_cell_labels[idx, :, :, 0]
+    pred_cell_label = pred_cell_labels[idx, :, :, 0]
+
+    true_nuc_props = pd.DataFrame(regionprops_table(true_nuc_label, properties=['label', 'area', 'centroid', 'coords']))
+    pred_nuc_props = pd.DataFrame(regionprops_table(pred_nuc_label, properties=['label', 'area', 'centroid', 'coords']))
+
+    true_cell_props = pd.DataFrame(regionprops_table(true_cell_label, properties=['label', 'coords']))
+    pred_cell_props = pd.DataFrame(regionprops_table(pred_cell_label, properties=['label', 'coords']))
+
+    current_df = properties_df.loc[properties_df['img_num'] == idx, :]
+    for true_cell in current_df['label_true'].values:
+        true_cell_coords = true_cell_props.loc[true_cell_props['label'] == true_cell, 'coords'].values[0]
+        true_nuc_id = segmentation_utils.find_nuclear_label_id(true_nuc_label, cell_coords=true_cell_coords)
+        if true_nuc_id is None:
+            true_nuc_area = 0
+        else:
+            true_nuc_area = true_nuc_props.loc[true_nuc_props['label'] == true_nuc_id, 'area'].values[0]
+        label_true_nuc.append(true_nuc_id)
+        area_true_nuc.append(true_nuc_area)
+
+        pred_cell = current_df.loc[current_df['label_true'] == true_cell, 'label_pred'].values[0]
+        pred_cell_coords = pred_cell_props.loc[pred_cell_props['label'] == pred_cell, 'coords'].values[0]
+        pred_nuc_id = segmentation_utils.find_nuclear_label_id(pred_nuc_label, cell_coords=pred_cell_coords)
+        if pred_nuc_id is None:
+            pred_nuc_area = 0
+        else:
+            pred_nuc_area = pred_nuc_props.loc[pred_nuc_props['label'] == pred_nuc_id, 'area'].values[0]
+        label_pred_nuc.append(pred_nuc_id)
+        area_pred_nuc.append(pred_nuc_area)
+
+properties_df['label_true_nuc'] = label_true_nuc
+properties_df['label_pred_nuc'] = label_pred_nuc
+properties_df['area_true_nuc'] = area_true_nuc
+properties_df['area_pred_nuc'] = area_pred_nuc
+properties_df['nc_ratio_true'] = properties_df['area_true_nuc'] / properties_df['area_true']
+properties_df['nc_ratio_pred'] = properties_df['area_pred_nuc'] / properties_df['area_pred']
+
+properties_df.to_csv(os.path.join(data_dir, 'cell_properties_with_new_props_nc.csv'), index=False)
+
+properties_df = pd.read_csv(os.path.join(data_dir, 'cell_properties_with_new_props_nc.csv'))
+
+
+plotting_props = ['major_minor_axis_ratio', 'perim_square_over_area', 'nc_ratio']
+
+properties_df.loc[properties_df['nc_ratio_pred'] > 1, 'nc_ratio_pred'] = 1
+properties_df.loc[properties_df['nc_ratio_true'] > 1, 'nc_ratio_true'] = 1
+
+
+mins = [0, 10, -0.25]
+maxes = [3, 25, 1.25]
+for i in range(len(plotting_props)):
+    prop = plotting_props[i]
+    x = properties_df[prop + '_true'].values
+    y = properties_df[prop + '_pred'].values
+
+    r, _ = pearsonr(x, y)
+
+    current_min, current_max = mins[i], maxes[i]
+    # Create meshgrid
+    xx, yy = np.mgrid[current_min:current_max:100j,
+             current_min:current_max:100j]
+
+    positions = np.vstack([xx.ravel(), yy.ravel()])
+    values = np.vstack([x, y])
+    kernel = st.gaussian_kde(values)
+    f = np.reshape(kernel(positions).T, xx.shape)
+
+
+    fig = plt.figure(figsize=(8,8))
+    ax = fig.gca()
+    ax.set_xlim(current_min, current_max)
+    ax.set_ylim(current_min, current_max)
+    cfset = ax.contourf(xx, yy, f, cmap='coolwarm')
+    l = ax.imshow(np.rot90(f), cmap='coolwarm')
+    ax.set_xlabel('True value')
+    ax.set_ylabel('Predicted Value')
+    fig.colorbar(l)
+    # fig.text(xmax - 4 * deltaX, ymin + 4 * deltaY, str(np.round(r, 2)))
+
+    plt.savefig(os.path.join(plot_dir, prop + '_correlation_4d.pdf'))
+
+# create colorbar
+x = np.random.rand(400).reshape(40, 10)
+fig, ax = plt.subplots()
+x1 = ax.imshow(x, cmap='coolwarm')
+fig.colorbar(x1)
+plt.savefig(os.path.join(plot_dir, 'Figure_4d_colorbar.pdf'))
 
 
 # Out of plane nuclei
 
-# # Figure 4e
-# # segmentations colored by nucleated vs not
-# y_pred = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_512x512_predictions.npz'))['y']
-# true_dict = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_512x512.npz'))
-# X_true = true_dict['X']
-#
-# idx = 168
-# img = X_true[idx, :, :, :]
-# labels = y_pred[idx, :, :, 0]
-#
-# io.imsave(os.path.join(plot_dir, 'Figure_4e_DNA.tif'), img[..., 0].astype('float32'))
-# io.imsave(os.path.join(plot_dir, 'Figure_4e_Membrane.tif'), img[..., 1].astype('float32'))
-# io.imsave(os.path.join(plot_dir, 'Figure_4e_labels.tif'), labels)
-#
-# current_DNA = io.imread(os.path.join(plot_dir, 'Figure_4e_DNA.tif'))
-# current_Membrane = io.imread(os.path.join(plot_dir, 'Figure_4e_Membrane.tif'))
-# current_label = io.imread(os.path.join(plot_dir, 'Figure_4e_labels.tif'))
-# current_boundary = find_boundaries(current_label, mode='inner')
-# DNA_xr = xr.DataArray(np.expand_dims(current_DNA, axis=-1),
-#                       coords=[range(512), range(512), ['DNA']],
-#                       dims=['rows', 'cols', 'channels'])
-#
-# label_xr = xr.DataArray(np.expand_dims(current_label, axis=-1),
-#                       coords=[range(512), range(512), ['whole_cell']],
-#                       dims=['rows', 'cols', 'compartments'])
-#
-# marker_counts = compute_marker_counts(input_images=DNA_xr, segmentation_masks=label_xr)
-# sns.distplot(marker_counts.loc['whole_cell', :, 'DNA'])
-#
-# overlay_img = np.full_like(current_label, 255, dtype='uint8')
-# overlay_img[current_label > 0] = 0
-#
-# anucleated_cells = marker_counts.loc['whole_cell', marker_counts.loc['whole_cell', :, 'DNA'].values < 10, 'label']
-#
-# anucleated_mask = np.isin(current_label, anucleated_cells.values)
-#
-# overlay_img[anucleated_mask] = 130
-# overlay_img[current_boundary] = 255
-#
-#
-# io.imsave(os.path.join(plot_dir, 'Figure_4e_DNA_cropped.tif'), current_DNA[50:450, 100:300])
-# io.imsave(os.path.join(plot_dir, 'Figure_4e_Membrane_cropped.tif'), current_Membrane[50:450, 100:300])
-# io.imsave(os.path.join(plot_dir, 'Figure_4e_label_overlay_cropped.tif'), overlay_img[50:450, 100:300])
-#
-#
-# # split RGB images after creating them in photoshop
-# bottom_rgb = io.imread(os.path.join(plot_dir, 'Figure_4e_bottom_rgb.tif'))
-# io.imsave(os.path.join(plot_dir, 'Figure_4e_bottom_rgb_cropped.tif'), bottom_rgb[116:, :, :])
-#
-# top_rgb = io.imread(os.path.join(plot_dir, 'Figure_4e_top_rgb.tif'))
-# io.imsave(os.path.join(plot_dir, 'Figure_4e_top_rgb_cropped.tif'), top_rgb[90:230, :, :])
-#
-# # Figure 4f
-# anuclear_fraction_pred = []
-# for idx in np.unique(properties_df['img_num']):
-#     current_counts = properties_df.loc[properties_df['img_num'] == idx]
-#     anucleated_count = np.sum(current_counts['area_pred_nuc'] == 0)
-#     total_count = len(current_counts)
-#     anuclear_fraction_pred.append(anucleated_count/total_count)
-#
-# anuclear_fraction_true = []
-# for idx in np.unique(properties_df['img_num']):
-#     current_counts = properties_df.loc[properties_df['img_num'] == idx]
-#     anucleated_count = np.sum(current_counts['area_true_nuc'] == 0)
-#     total_count = len(current_counts)
-#     anuclear_fraction_true.append(anucleated_count/total_count)
-#
-# anuclear_df = pd.DataFrame({'anuclear_frac_pred': anuclear_fraction_pred,
-#                             'anuclear_frac_true': anuclear_fraction_true,
-#                             'tissue': tissue_list})
-#
-# sums = anuclear_df.groupby('tissue')['anuclear_frac_true'].mean()
-#
-# # sort by decreasing nuclear counts
-# anuclear_counts = sums.values
-# anuclear_tissue = sums.index.values
-# sort_idx = np.argsort(anuclear_counts)
-# anuclear_counts, anuclear_tissue = anuclear_counts[sort_idx], anuclear_tissue[sort_idx]
-#
-# # remove breast and skin
-# keep_idx = np.isin(anuclear_tissue, ['breast', 'immune', 'pancreas', 'gi'])
-# anuclear_counts, anuclear_tissue = anuclear_counts[keep_idx], anuclear_tissue[keep_idx]
-#
-# fig, ax = plt.subplots()
-# width = 0.35
-# ax.bar(anuclear_tissue, anuclear_counts, label='Nuclear Fraction')
-# # Hide the right and top spines
-# ax.spines['right'].set_visible(False)
-# ax.spines['top'].set_visible(False)
-# ax.set_title('Fraction anuclear cells')
-# ax.set_ylim(0, 0.20)
-# fig.savefig(plot_dir + 'Figure_4f_true.pdf')
+# Figure 4e
+# segmentations colored by nucleated vs not
+y_pred = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_512x512_predictions.npz'))['y']
+true_dict = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_512x512.npz'))
+X_true = true_dict['X']
+
+idx = 168
+img = X_true[idx, :, :, :]
+labels = y_pred[idx, :, :, 0]
+
+io.imsave(os.path.join(plot_dir, 'Figure_4e_DNA.tif'), img[..., 0].astype('float32'))
+io.imsave(os.path.join(plot_dir, 'Figure_4e_Membrane.tif'), img[..., 1].astype('float32'))
+io.imsave(os.path.join(plot_dir, 'Figure_4e_labels.tif'), labels)
+
+current_DNA = io.imread(os.path.join(plot_dir, 'Figure_4e_DNA.tif'))
+current_Membrane = io.imread(os.path.join(plot_dir, 'Figure_4e_Membrane.tif'))
+current_label = io.imread(os.path.join(plot_dir, 'Figure_4e_labels.tif'))
+current_boundary = find_boundaries(current_label, mode='inner')
+DNA_xr = xr.DataArray(np.expand_dims(current_DNA, axis=-1),
+                      coords=[range(512), range(512), ['DNA']],
+                      dims=['rows', 'cols', 'channels'])
+
+label_xr = xr.DataArray(np.expand_dims(current_label, axis=-1),
+                      coords=[range(512), range(512), ['whole_cell']],
+                      dims=['rows', 'cols', 'compartments'])
+
+marker_counts = compute_marker_counts(input_images=DNA_xr, segmentation_labels=label_xr)
+
+overlay_img = np.full_like(current_label, 255, dtype='uint8')
+overlay_img[current_label > 0] = 0
+
+anucleated_cells = marker_counts.loc['whole_cell', marker_counts.loc['whole_cell', :, 'DNA'].values < 10, 'label']
+
+anucleated_mask = np.isin(current_label, anucleated_cells.values)
+
+overlay_img[anucleated_mask] = 130
+overlay_img[current_boundary] = 255
+
+
+io.imsave(os.path.join(plot_dir, 'Figure_4e_DNA_cropped.tif'), current_DNA[50:450, 100:300])
+io.imsave(os.path.join(plot_dir, 'Figure_4e_Membrane_cropped.tif'), current_Membrane[50:450, 100:300])
+io.imsave(os.path.join(plot_dir, 'Figure_4e_label_overlay_cropped.tif'), overlay_img[50:450, 100:300])
+
+
+# split RGB images after creating them in photoshop
+bottom_rgb = io.imread(os.path.join(plot_dir, 'Figure_4e_bottom_rgb.tif'))
+io.imsave(os.path.join(plot_dir, 'Figure_4e_bottom_rgb_cropped.tif'), bottom_rgb[116:, :, :])
+
+top_rgb = io.imread(os.path.join(plot_dir, 'Figure_4e_top_rgb.tif'))
+io.imsave(os.path.join(plot_dir, 'Figure_4e_top_rgb_cropped.tif'), top_rgb[90:230, :, :])
+
+# Figure 4f
+anuclear_fraction_pred = []
+for idx in np.unique(properties_df['img_num']):
+    current_counts = properties_df.loc[properties_df['img_num'] == idx]
+    anucleated_count = np.sum(current_counts['area_pred_nuc'] == 0)
+    total_count = len(current_counts)
+    anuclear_fraction_pred.append(anucleated_count/total_count)
+
+anuclear_fraction_true = []
+for idx in np.unique(properties_df['img_num']):
+    current_counts = properties_df.loc[properties_df['img_num'] == idx]
+    anucleated_count = np.sum(current_counts['area_true_nuc'] == 0)
+    total_count = len(current_counts)
+    anuclear_fraction_true.append(anucleated_count/total_count)
+
+anuclear_df = pd.DataFrame({'anuclear_frac_pred': anuclear_fraction_pred,
+                            'anuclear_frac_true': anuclear_fraction_true,
+                            'tissue': tissue_list})
+
+sums = anuclear_df.groupby('tissue')['anuclear_frac_true'].mean()
+
+# sort by decreasing nuclear counts
+anuclear_counts = sums.values
+anuclear_tissue = sums.index.values
+sort_idx = np.argsort(anuclear_counts)
+anuclear_counts, anuclear_tissue = anuclear_counts[sort_idx], anuclear_tissue[sort_idx]
+
+# remove breast and skin
+keep_idx = np.isin(anuclear_tissue, ['breast', 'immune', 'pancreas', 'gi'])
+anuclear_counts, anuclear_tissue = anuclear_counts[keep_idx], anuclear_tissue[keep_idx]
+
+fig, ax = plt.subplots()
+width = 0.35
+ax.bar(anuclear_tissue, anuclear_counts, label='Nuclear Fraction')
+# Hide the right and top spines
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
+ax.set_title('Fraction anuclear cells')
+ax.set_ylim(0, 0.20)
+fig.savefig(plot_dir + 'Figure_4f_true.pdf')
 
 
 # Cell subtype evaluation
@@ -523,6 +526,7 @@ marker_thresholds = {'CK': 3, 'CD8': 3, 'CD11c': 3, 'CD68': 6}
 
 cluster_idx_pred = np.zeros(len(norm_data_pred))
 
+# create numeric index for cells positive for each marker
 for idx, marker in enumerate(['CD8', 'CK', 'CD11c']):
     threshold = marker_thresholds[marker]
     positive_idx = norm_data_pred[marker] > threshold
@@ -544,6 +548,9 @@ for idx, marker in enumerate(['CD8', 'CK', 'CD11c']):
     cluster_idx_true[update_idx] = idx + 1
 
 norm_data_true['cluster_idx'] = cluster_idx_true + 1
+
+norm_data_pred.to_csv(os.path.join(data_dir, 'norm_data_pred.csv'), index=False)
+norm_data_true.to_csv(os.path.join(data_dir, 'norm_data_true.csv'), index=False)
 
 # compute fraction of each cell type in each image
 counts_list, cells_list, algorithm_list = [], [], []
@@ -589,6 +596,73 @@ for i in range(len(cell_types)):
 
 
 fig.savefig(os.path.join(plot_dir, 'Figure_4j.pdf'))
+
+# determine matches between predicted and ground truth
+norm_data_true['matching_cell_type'] = 0
+norm_data_pred['matching_cell_type'] = 0
+for i in range(len(norm_data_true)):
+    current_label = norm_data_true.iloc[i, :]["label"]
+    current_fov = norm_data_true.iloc[i, :]["fov"]
+
+    true_mask = true_labels.loc[current_fov, :, :, 'whole_cell'].values
+    pred_mask = mesmer_labels.loc[current_fov, :, :, 'whole_cell'].values
+
+    # get the counts of each cell in pred which overlaps the true cell
+    overlap_id, overlap_counts = np.unique(pred_mask[true_mask == current_label], return_counts=True)
+
+    # remove 0, which is background
+    nonzero_idx = overlap_id != 0
+    overlap_id = overlap_id[nonzero_idx]
+    overlap_counts = overlap_counts[nonzero_idx]
+
+    # if only overlaps with 0, cells didn't match
+    if len(overlap_id) == 0:
+        # no matching cells, don't update
+        continue
+    else:
+        if len(overlap_id) == 1:
+            overlap_id = overlap_id[0]
+        else:
+            max_idx = np.argmax(overlap_counts)
+            overlap_id = overlap_id[max_idx]
+
+        pred_row_idx = np.logical_and(norm_data_pred['fov'] == current_fov,
+                                 norm_data_pred['label'] == overlap_id)
+
+        pred_cluster = norm_data_pred.loc[pred_row_idx, 'cluster_idx'].values[0]
+        true_cluster = norm_data_true.iloc[i, -2]
+
+        if pred_cluster == true_cluster:
+            norm_data_true.iloc[i, -1] = 1
+            norm_data_pred.loc[pred_row_idx, 'matching_cell_type'] = 1
+
+
+cluster_list, metric_list, scores_list = [], [], []
+for cluster in [1, 2, 3, 4]:
+    true_data_cluster = norm_data_true.loc[norm_data_true['cluster_idx'] == cluster, :]
+    true_pos = sum(true_data_cluster['matching_cell_type'] == 1)
+    false_neg = len(true_data_cluster) - true_pos
+
+    pred_data_cluster = norm_data_pred.loc[norm_data_pred['cluster_idx'] == cluster, :]
+    true_pos2 = sum(pred_data_cluster['matching_cell_type'] == 1)
+    false_pos = len(pred_data_cluster) - true_pos2
+
+    precision = true_pos / (true_pos + false_pos)
+    recall = true_pos / (true_pos + false_neg)
+
+    cluster_list.append(cluster)
+    metric_list.append('precision')
+    scores_list.append(precision)
+
+    cluster_list.append(cluster)
+    metric_list.append('recall')
+    scores_list.append(recall)
+
+plotting_df = pd.DataFrame({'cluster': cluster_list, 'metric': metric_list, 'score': scores_list})
+fig, ax = plt.subplots()
+ax = sns.barplot(data=plotting_df, x='cluster', y='score', hue='metric',
+                 color='grey', ci=None)
+plt.savefig(os.path.join(plot_dir, 'Figure_4_precision_recall.pdf'))
 
 # create overlays with cell subtypes
 new_colormap_vals = [[0, 0, 0],

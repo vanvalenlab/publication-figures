@@ -25,53 +25,53 @@ matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 
 # Figure 3a overlays
-base_dir = 'path_to_zip_folder/publications_data_folder/'
+base_dir = 'path_to_zip_folder/publication_data_folder/'
+data_dir = os.path.join(base_dir, 'test_split_predictions')
 plot_dir = base_dir + 'plots'
 
-# this code requires TissueNet to run, which will be released following publication
-# # Figure 3a
-# y_pred = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_512x512_predictions.npz'))['y']
-# true_dict = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_512x512.npz'))
-# X_true, y_true, tissue_list, platform_list = true_dict['X'], true_dict['y'], true_dict['tissue_list'], true_dict['platform_list']
-#
-# indices =[330, 168, 132, 33]
-# name = ['Vectra_Breast_Cancer', 'MIBI_GI', 'CyCIF_Lung_Cancer', 'CODEX_Pancreas']
-#
-# for i in range(len(indices)):
-#     idx = indices[i]
-#     pred_label = y_pred[idx, :, :, 0]
-#     true_label = y_true[idx, :, :, 0]
-#     DNA, Membrane = X_true[idx, :, :, 0], X_true[idx, :, :, 1]
-#
-#     pred_bool = find_boundaries(pred_label, mode='inner')
-#
-#     greyscale_cells = np.full((512, 512), 255, dtype='uint8')
-#     greyscale_cells[pred_label > 0] = 0
-#     greyscale_cells[pred_bool] = 160
-#     current_metrics = Metrics('test_split')
-#
-#     true_label = label(true_label)
-#     pred_label = label(pred_label)
-#
-#     current_metrics.calc_object_stats(y_true=np.expand_dims(np.expand_dims(true_label, axis=0), axis=-1),
-#                                       y_pred=np.expand_dims(np.expand_dims(pred_label, axis=0), axis=-1))
-#     current_preds = current_metrics.predictions[0][0]
-#
-#     current_errors = np.full((512, 512), 255, dtype='uint8')
-#     current_errors[greyscale_cells == 0] = 160
-#     accurate_cells = current_preds['correct']['y_pred']
-#     accurate_mask = np.isin(pred_label, accurate_cells)
-#     accurate_mask[pred_bool] = False
-#     current_errors[accurate_mask] = 0
-#
-#     crop_dir = os.path.join(plot_dir, 'Figure_3a_crop_{}'.format(i))
-#     if not os.path.exists(crop_dir):
-#         os.makedirs(crop_dir)
-#     io.imsave(crop_dir + '/DNA.tiff', DNA)
-#     io.imsave(crop_dir + '/Membrane.tiff', Membrane)
-#     io.imsave(crop_dir + '/Greyscale.tiff', greyscale_cells)
-#     io.imsave(crop_dir + '/Errors.tiff', current_errors)
-#     io.imsave(crop_dir + '/Label.tiff', pred_label)
+# Figure 3a
+y_pred = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_512x512_predictions.npz'))['y']
+true_dict = np.load(os.path.join(data_dir, '20201018_multiplex_final_seed_1_test_512x512.npz'))
+X_true, y_true, tissue_list, platform_list = true_dict['X'], true_dict['y'], true_dict['tissue_list'], true_dict['platform_list']
+
+indices =[330, 168, 132, 33]
+name = ['Vectra_Breast_Cancer', 'MIBI_GI', 'CyCIF_Lung_Cancer', 'CODEX_Pancreas']
+
+for i in range(len(indices)):
+    idx = indices[i]
+    pred_label = y_pred[idx, :, :, 0]
+    true_label = y_true[idx, :, :, 0]
+    DNA, Membrane = X_true[idx, :, :, 0], X_true[idx, :, :, 1]
+
+    pred_bool = find_boundaries(pred_label, mode='inner')
+
+    greyscale_cells = np.full((512, 512), 255, dtype='uint8')
+    greyscale_cells[pred_label > 0] = 0
+    greyscale_cells[pred_bool] = 160
+    current_metrics = Metrics('test_split')
+
+    true_label = label(true_label)
+    pred_label = label(pred_label)
+
+    current_metrics.calc_object_stats(y_true=np.expand_dims(np.expand_dims(true_label, axis=0), axis=-1),
+                                      y_pred=np.expand_dims(np.expand_dims(pred_label, axis=0), axis=-1))
+    current_preds = current_metrics.predictions[0][0]
+
+    current_errors = np.full((512, 512), 255, dtype='uint8')
+    current_errors[greyscale_cells == 0] = 160
+    accurate_cells = current_preds['correct']['y_pred']
+    accurate_mask = np.isin(pred_label, accurate_cells)
+    accurate_mask[pred_bool] = False
+    current_errors[accurate_mask] = 0
+
+    crop_dir = os.path.join(plot_dir, 'Figure_3a_crop_{}'.format(i))
+    if not os.path.exists(crop_dir):
+        os.makedirs(crop_dir)
+    io.imsave(crop_dir + '/DNA.tiff', DNA)
+    io.imsave(crop_dir + '/Membrane.tiff', Membrane)
+    io.imsave(crop_dir + '/Greyscale.tiff', greyscale_cells)
+    io.imsave(crop_dir + '/Errors.tiff', current_errors)
+    io.imsave(crop_dir + '/Label.tiff', pred_label)
 
 # specialist model evaluation
 data_dir = base_dir + 'benchmarking_accuracy'
@@ -337,37 +337,36 @@ for plot_type in plots:
 
     plt.savefig(os.path.join(plot_dir, 'Figure_S3c_{}.pdf'.format(plot_type)))
 
-# # This code requires TissueNet to run
-# # Figure S3i
-# data_dir = base_dir + 'test_split_predictions/'
-# true_dict = np.load(data_dir + '20201018_multiplex_final_seed_1_test_256x256.npz')
-# x_true, y_true, tissue_list, platform_list = true_dict['X'], true_dict['y'], true_dict['tissue_list'], true_dict['platform_list']
-# y_pred = np.load(data_dir + '20201018_multiplex_final_seed_1_test_cell_prediction.npz')['y']
-#
-# m = Metrics('default_name')
-# m.calc_object_stats(y_true=y_true, y_pred=y_pred)
-#
-# m.stats['recall'] = m.stats['correct_detections'] / m.stats['n_true']
-# m.stats['precision'] = m.stats['correct_detections'] / m.stats['n_pred']
-# m.stats['f1'] = hmean([m.stats['recall'], m.stats['precision']])
-# score_order = np.argsort(m.stats['f1']).values
-# x1 = x_true[score_order[0], :, :, 0].astype('float32')
-# io.imshow(x_true[score_order[24], :, :, 1].astype('float32'))
-#
-# io.imsave(plot_dir + 'Figure_S3i_crop_0_DNA.tiff', x_true[540, :, :, 0].astype('float32'))
-# io.imsave(plot_dir + 'Figure_S3i_crop_0_Membrane.tiff', x_true[540, :, :, 1].astype('float32'))
-#
-# io.imsave(plot_dir + 'Figure_S3i_crop_1_DNA.tiff', x_true[897, :, :, 0].astype('float32'))
-# io.imsave(plot_dir + 'Figure_S3i_crop_1_Membrane.tiff', x_true[897, :, :, 1].astype('float32'))
-#
-# io.imsave(plot_dir + 'Figure_S3i_crop_2_DNA.tiff', x_true[300, :, :, 0].astype('float32'))
-# io.imsave(plot_dir + 'Figure_S3i_crop_2_Membrane.tiff', x_true[300, :, :, 1].astype('float32'))
-#
-# io.imsave(plot_dir + 'Figure_S3i_crop_3_DNA.tiff', x_true[213, :, :, 0].astype('float32'))
-# io.imsave(plot_dir + 'Figure_S3i_crop_3_Membrane.tiff', x_true[213, :, :, 1].astype('float32'))
-#
-# io.imsave(plot_dir + 'Figure_S3i_crop_4_DNA.tiff', x_true[697, :, :, 0].astype('float32'))
-# io.imsave(plot_dir + 'Figure_S3i_crop_4_Membrane.tiff', x_true[697, :, :, 1].astype('float32'))
+# Figure S3i
+data_dir = base_dir + 'test_split_predictions/'
+true_dict = np.load(data_dir + '20201018_multiplex_final_seed_1_test_256x256.npz')
+x_true, y_true, tissue_list, platform_list = true_dict['X'], true_dict['y'], true_dict['tissue_list'], true_dict['platform_list']
+y_pred = np.load(data_dir + '20201018_multiplex_final_seed_1_test_cell_prediction.npz')['y']
+
+m = Metrics('default_name')
+m.calc_object_stats(y_true=y_true, y_pred=y_pred)
+
+m.stats['recall'] = m.stats['correct_detections'] / m.stats['n_true']
+m.stats['precision'] = m.stats['correct_detections'] / m.stats['n_pred']
+m.stats['f1'] = hmean([m.stats['recall'], m.stats['precision']])
+score_order = np.argsort(m.stats['f1']).values
+x1 = x_true[score_order[0], :, :, 0].astype('float32')
+io.imshow(x_true[score_order[24], :, :, 1].astype('float32'))
+
+io.imsave(plot_dir + 'Figure_S3i_crop_0_DNA.tiff', x_true[540, :, :, 0].astype('float32'))
+io.imsave(plot_dir + 'Figure_S3i_crop_0_Membrane.tiff', x_true[540, :, :, 1].astype('float32'))
+
+io.imsave(plot_dir + 'Figure_S3i_crop_1_DNA.tiff', x_true[897, :, :, 0].astype('float32'))
+io.imsave(plot_dir + 'Figure_S3i_crop_1_Membrane.tiff', x_true[897, :, :, 1].astype('float32'))
+
+io.imsave(plot_dir + 'Figure_S3i_crop_2_DNA.tiff', x_true[300, :, :, 0].astype('float32'))
+io.imsave(plot_dir + 'Figure_S3i_crop_2_Membrane.tiff', x_true[300, :, :, 1].astype('float32'))
+
+io.imsave(plot_dir + 'Figure_S3i_crop_3_DNA.tiff', x_true[213, :, :, 0].astype('float32'))
+io.imsave(plot_dir + 'Figure_S3i_crop_3_Membrane.tiff', x_true[213, :, :, 1].astype('float32'))
+
+io.imsave(plot_dir + 'Figure_S3i_crop_4_DNA.tiff', x_true[697, :, :, 0].astype('float32'))
+io.imsave(plot_dir + 'Figure_S3i_crop_4_Membrane.tiff', x_true[697, :, :, 1].astype('float32'))
 
 # image distortion
 

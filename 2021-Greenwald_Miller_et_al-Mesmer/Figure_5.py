@@ -25,7 +25,7 @@ from matplotlib.colors import ListedColormap
 import figures
 from ark.segmentation import marker_quantification
 
-base_dir = 'path_to_zip_folder/publications_data_folder/'
+base_dir = 'path_to_zip_folder/publication_data_folder/'
 plot_dir = base_dir + 'plots'
 data_dir = base_dir + '/decidua/'
 
@@ -217,58 +217,6 @@ for i in range(len(row_coords)):
 
 # Figure 5d
 cluster_df_selected_nucleated = cluster_df_selected.loc[cluster_df_selected['nucleated'] == True, :]
-# centroid_dif_perc = np.percentile(cluster_df_selected_nucleated['centroid_dif'].values,
-#                                   [0, 35, 35, 70, 70, 100])
-# perim_square_perc = np.percentile(cluster_df_selected_nucleated['perim_square_over_area'].values,
-#                                   [0, 35, 35, 70, 70, 100])
-#
-# concavities_perc = np.percentile(cluster_df_selected_nucleated['concavity_count'].values,
-#                                   [0, 35, 35, 70, 70, 100])
-
-# # identify cells on a spectrum for each metric
-# for metric in umap_metrics[2:]:
-#     metric_percentile = np.percentile(cluster_df_selected_nucleated[metric].values,
-#                                   [0, 35, 35, 80, 80, 100])
-#     for metric_iterator in range(3):
-#         metric_idx = np.logical_and(metric_percentile[metric_iterator * 2] <= cluster_df_selected_nucleated[metric],
-#                                          cluster_df_selected_nucleated[metric] <= metric_percentile[metric_iterator * 2 + 1])
-#
-#         main_folder = os.path.join(data_dir, 'selected_fovs_plots/lineup_{}_{}'.format(metric, metric_iterator))
-#         if not os.path.exists(main_folder):
-#             os.makedirs(main_folder)
-#
-#         area_min, area_max = 800, 2000
-#         area_idx = np.logical_and(area_min <= cluster_df_selected_nucleated['area'],
-#                                   cluster_df_selected_nucleated['area'] <= area_max)
-#
-#         current_idx = np.logical_and(metric_idx, area_idx)
-#
-#         num = np.sum(current_idx)
-#         for i in range(50, 90):
-#             cell = np.where(current_idx)[0][i]
-#             fov, cell_id, centroid_row, centroid_col = cluster_df_selected_nucleated.iloc[cell][['point', 'label', 'centroid-0', 'centroid-1']]
-#             crop_dir = os.path.join(main_folder, 'crop_{}'.format(i))
-#             if not os.path.exists(crop_dir):
-#                 os.makedirs(crop_dir)
-#             if 100 < centroid_row < 1900 and 100 < centroid_col < 1900:
-#                 centroid_row = int(centroid_row)
-#                 centroid_col = int(centroid_col)
-#
-#                 current_label = segmentation_labels_selected.loc[fov, :, :, 'whole_cell'].values
-#                 current_label_crop = current_label[centroid_row - 30: centroid_row + 30, centroid_col - 30: centroid_col + 30]
-#                 mask = current_label_crop == cell_id
-#                 binary_img = np.zeros((mask.shape), dtype='float32')
-#                 binary_outline = find_boundaries(current_label_crop, mode='inner').astype('uint8')
-#                 binary_img[current_label_crop > 0] = 1
-#                 binary_img[binary_outline > 0] = 0
-#
-#                 io.imsave(os.path.join(crop_dir, 'shape_crop.tiff'), mask)
-#                 io.imsave(os.path.join(crop_dir, 'label_mask.tiff'), binary_img)
-#
-#                 for channel in ['H3', 'VIM', 'CD3', 'CD56', 'CD14', 'HLAG']:
-#                     full_path = os.path.join(data_dir, '20210103_comparison', fov, channel + '.tiff')
-#                     save_path = os.path.join(crop_dir, channel + '.tiff')
-#                     save_image_crops(full_path, centroid_row, centroid_col, 40, save_path)
 
 combined_fov_list = ['6_31727_15_3', '6_31727_15_3', '6_31727_15_3',
                      '6_31727_15_3', '6_31727_15_3', '6_31727_15_3',
