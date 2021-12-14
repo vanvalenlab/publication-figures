@@ -4,8 +4,8 @@ The data to generate the figures can be found [here](https://storage.googleapis.
 
 All of the scripts to directly generate the figures are provided in the top-level directory, numbered with the figure they correspond to. Helper functions are present in the *figures.py* file. 
 
-The notebooks used for model training and evaluation can be found in the *notebooks* folder. The corresponding data for model training can be found [here](https://storage.googleapis.com/publications-data/mesmer-paper/model_training_files.zip). These notebooks are specifically for the benchmarking that was performed in the paper. 
+The notebooks used for model training and evaluation can be found in the *notebooks* folder. The corresponding data for model training can be found [here](https://storage.googleapis.com/publications-data/mesmer-paper/model_training_files.zip). These notebooks are specifically for the benchmarking that was performed in the paper. The model weights for the CellPose and StarDist models trained on TissueNet can be found [here](https://storage.googleapis.com/publications-data/mesmer-paper/tissuenet_trained_models.zip).
 
 For a general template of how to train the Mesmer model, see the *Mesmer_training_notebook.ipynb* file in the top level directory. 
 
-For information on how to use Mesmer to analyze your data, see our [introductory repo](https://github.com/vanvalenlab/intro-to-deepcell/tree/master/pretrained_models)
+For information on how to use Mesmer to analyze your data, see our [introductory repo](https://github.com/vanvalenlab/intro-to-deepcell/tree/master/pretrained_models).
